@@ -13,7 +13,7 @@
         msg: "The Host name is {{inventory_hostname}} "
 
     - name: Get HostIP
-      command: hostname -I | awk '{print $1}'
+      shell: hostname -I | awk '{print $1}'
       register: Hostip
 
     - name: display Hostip
