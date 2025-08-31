@@ -1,0 +1,15 @@
+---
+- name: Test Playbook to test random task
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+
+    - name: to check if the host is pinging
+      ping:
+
+    - name: Display Linux distribution
+      debug:
+        msg: "The Linux distribution is {{ ansible_distribution }} (OS family: {{ ansible_os_family }})"
+
+   
