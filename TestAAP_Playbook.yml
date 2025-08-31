@@ -13,10 +13,6 @@
         msg: "The Host name is {{inventory_hostname}} "
 
 
-    - name: display Hostip
-      debug:
-        msg: "The Host IP is {{ansible_default_ipv4.address}}"
-
     - name: Gather resource details
       setup:
       register: setup_details
@@ -24,5 +20,9 @@
     - name: display setup details
       debug:
         msg: "The Setup Details: {{setup_details}}"
+
+    - name: display Hostip
+      debug:
+        msg: "The Host IP is {{ansible_default_ipv4.address}}"
 
    
