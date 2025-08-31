@@ -12,13 +12,10 @@
       debug:
         msg: "The Host name is {{inventory_hostname}} "
 
-    - name: Get HostIP
-      shell: hostname -I | awk '{print $1}'
-      register: Hostip
 
     - name: display Hostip
       debug:
-        msg: "The Host IP is {{Hostip}}"
+        msg: "The Host IP is {{ansible_default_ipv4.address}}"
 
     - name: Gather resource details
       setup:
