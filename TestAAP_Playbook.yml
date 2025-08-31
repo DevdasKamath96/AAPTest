@@ -8,8 +8,8 @@
     - name: to check if the host is pinging
       ping:
 
-    - name: Display Linux distribution
+    - name: Display HostName
       debug:
-        msg: "The Linux distribution is {{ ansible_distribution }} (OS family: {{ ansible_os_family }})"
+        msg: "The Host name is {{inventory_hostname}} "
 
    
