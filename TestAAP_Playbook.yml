@@ -12,6 +12,10 @@
       debug:
         msg: "The Host name is {{inventory_hostname}} "
 
+    - name: display ansible facts
+      debug:
+        msg: "{{ansible_facts}}"
+
 
     - name: Gather resource details
       setup:
