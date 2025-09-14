@@ -27,9 +27,13 @@
           src: /home/devdas/aap_test.txt
         register: file_content
 
+      - name: save file content
+        set_fact:
+          file_data: "{{ file_content['content'] | b64decode }}"
+
       - name: display file content
         debug:
-          msg: "{{ file_content['content'] | b64decode }}"
+          msg: "{{file_data}}"
        
 
      
