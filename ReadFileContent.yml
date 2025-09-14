@@ -1,0 +1,12 @@
+---
+- name: Read content of a file on a remote host
+  hosts: localhost
+  tasks:
+    - name: Slurp the file content
+      ansible.builtin.slurp:
+        src: /home/devdas/aap_test.txt
+      register: file_content
+
+    - name: display file content
+      debug:
+        msg: "{{file_content}}"
