@@ -1,0 +1,30 @@
+---
+- name: Test create a file and data to it
+  hosts: localhost
+  gather_facts: yes
+
+  tasks:
+      - name: Create a directory if it does not exist
+        ansible.builtin.file:
+          path: /home/devdas
+          state: directory
+          mode: '0755'
+
+      - name: Touch the same file, but add/remove some permissions
+        ansible.builtin.file:
+          path: /home/devdas/aap_test.txt
+          state: touch
+          mode: 755
+
+      - name: add some contents in the file
+        lineinfile:
+          path: /home/devdas/aap_test.txt
+          line: Hi this is a test file genertaed for AAAP demo
+          create: yes
+       
+
+     
+
+
+
+   
