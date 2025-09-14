@@ -21,6 +21,15 @@
           path: /home/devdas/aap_test.txt
           line: Hi this is a test file genertaed for AAAP demo
           create: yes
+
+      - name: read the file content
+        slurp:
+          src: /home/devdas/aap_test.txt
+        register: file_content
+
+      - name: display file content
+        debug:
+          msg: "{{file_content}}"
        
 
      
