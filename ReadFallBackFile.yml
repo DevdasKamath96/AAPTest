@@ -9,4 +9,4 @@
 
      - name: display sshd_config data
        debug:
-          msg: "{{pass_conten.content | b64decode }}"
+          msg: "{{pass_content.content | b64decode }}"
