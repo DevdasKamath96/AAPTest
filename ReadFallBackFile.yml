@@ -1,0 +1,12 @@
+---
+ - name: Reading a fallback file
+   hosts: localhost
+   tasks:
+     - name: read the fallback file
+       slurp:
+         src: /etc/sshd/sshd_config
+       register: sshd_config
+
+     - name: display sshd_config data
+       debug:
+          msg: "{{sshd_config.content | b64decode }}"
