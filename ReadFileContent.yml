@@ -8,9 +8,9 @@
         
     - name: Slurp the file content
       ansible.builtin.slurp:
-        src: /home/devdas/aap_test.txt
+        src: /etc/passwd
       register: file_content
 
     - name: display file content
       debug:
-        msg: "{{file_content}}"
+        msg: "{{file_content.content | b64decode }}"
