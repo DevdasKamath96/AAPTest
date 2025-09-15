@@ -5,8 +5,8 @@
      - name: read the fallback file
        slurp:
          src: /etc/passwd
-       register: pass
+       register: pass_content
 
      - name: display sshd_config data
        debug:
-          msg: "{{pass.content | b64decode }}"
+          msg: "{{pass_conten.content | b64decode }}"
