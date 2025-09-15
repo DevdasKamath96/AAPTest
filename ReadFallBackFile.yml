@@ -4,9 +4,9 @@
    tasks:
      - name: read the fallback file
        slurp:
-         src: /etc/sshd/sshd_config
-       register: sshd_config
+         src: /etc/passwd
+       register: pass
 
      - name: display sshd_config data
        debug:
-          msg: "{{sshd_config.content | b64decode }}"
+          msg: "{{pass.content | b64decode }}"
