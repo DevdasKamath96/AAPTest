@@ -1,1 +1,9 @@
-
+---
+- name: Launch a Podman container
+  hosts: all
+  tasks:
+    - name: Run msi dev container
+      containers.podman.podman_container:
+        name: TestDemoContainer
+        image: msidevregistrt.azurecr.io/rhel810_platform/rhel810_catui:R14_000_00_D14_000_00_011020251948
+        state: started
