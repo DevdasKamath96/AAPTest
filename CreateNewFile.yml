@@ -27,10 +27,6 @@
           src: /home/devdas/aap_test.txt
         register: file_content
 
-      - name: fail the task voluntarily
-        fail:
-          msg: "Fail the task voluntarily"
-
       - name: save file content
         set_fact:
           file_data: "{{ file_content['content'] | b64decode }}"
