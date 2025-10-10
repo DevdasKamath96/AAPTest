@@ -1,6 +1,6 @@
 ---
 - name: Read content of a file on a remote host
-  hosts: localhost
+  hosts: all
   tasks:
     - name: display the file content
       debug:
