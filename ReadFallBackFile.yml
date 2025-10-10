@@ -1,6 +1,6 @@
 ---
  - name: Reading a fallback file
-   hosts: localhost
+   hosts: all
    tasks:
      - name: read the fallback file
        slurp:
