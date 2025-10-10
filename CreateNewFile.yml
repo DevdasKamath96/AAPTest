@@ -8,13 +8,13 @@
         ansible.builtin.file:
           path: /home/autoinstall/devdas
           state: directory
-          mode: '0755'
+          mode: '0775'
 
       - name: Touch the same file, but add/remove some permissions
         ansible.builtin.file:
           path: /home/autoinstall/devdas/aap_test.txt
           state: touch
-          mode: 755
+          mode: 775
 
       - name: add some contents in the file
         lineinfile:
