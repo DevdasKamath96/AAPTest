@@ -21,19 +21,6 @@
           path: /home/autoinstall/devdas/aap_test.txt
           line: Hi this is a test file genertaed for AAAP demo
           create: yes
-
-      - name: read the file content
-        slurp:
-          src: /home/autoinstall/devdas/aap_test.txt
-        register: file_content
-
-      - name: save file content
-        set_fact:
-          file_data: "{{ file_content['content'] | b64decode }}"
-
-      - name: display file content
-        debug:
-          msg: "{{file_data}}"
        
 
      
