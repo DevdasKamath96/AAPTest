@@ -1,6 +1,6 @@
 ---
 - name: Test create a file and data to it
-  hosts: localhost
+  hosts: all
   gather_facts: yes
 
   tasks:
