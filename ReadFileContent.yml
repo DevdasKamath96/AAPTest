@@ -3,14 +3,14 @@
   hosts: all
   tasks:
      - name: read the file content
-        slurp:
+       slurp:
           src: /home/autoinstall/devdas/aap_test.txt
-        register: file_content
+       register: file_content
 
-      - name: save file content
-        set_fact:
-          file_data: "{{ file_content['content'] | b64decode }}"
+     - name: save file content
+       set_fact:
+         file_data: "{{ file_content['content'] | b64decode }}"
 
-      - name: display file content
-        debug:
-          msg: "{{file_data}}"
+     - name: display file content
+       debug:
+         msg: "{{file_data}}"
