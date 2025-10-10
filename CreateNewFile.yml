@@ -27,9 +27,6 @@
           src: /home/devdas/aap_test.txt
         register: file_content
 
-      - fail:
-          msg: "failed the create play voluntarily"
-
       - name: save file content
         set_fact:
           file_data: "{{ file_content['content'] | b64decode }}"
