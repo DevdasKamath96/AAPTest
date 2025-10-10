@@ -1,0 +1,20 @@
+- name: Test EMS API
+  hosts: all
+  gather_facts: yes
+
+  tasks:
+    - name: Generate the API authenticator token.
+      uri:
+         url: "http://{{ cms_url }}/cms/login?v=1618381584572"
+         method: POST
+         body:
+           user: '{{ cms_user }}'
+           password: '{{ cms_password }}'
+         body_format: json
+         headers:
+           Connection: 'keep-alive'
+      register: result
+      failed_when: result.status not in [200, 201]
+    
+    - set_fact:
+         cms_login_token: '{{ result.json.accessToken }}'
