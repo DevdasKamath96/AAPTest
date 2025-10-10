@@ -1,0 +1,11 @@
+- name: Test EMS API
+  hosts: all
+  gather_facts: yes
+
+  tasks:
+  
+    - name: Display the token
+      debug:
+        msg: "{{cms_token}}"
+      
+      
