@@ -1,6 +1,6 @@
 ---
 - name: Test Playbook to test random task
-  hosts: localhost
+  hosts: all
   gather_facts: yes
 
   tasks:
