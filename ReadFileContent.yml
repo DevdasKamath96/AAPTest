@@ -2,15 +2,15 @@
 - name: Read content of a file on a remote host
   hosts: all
   tasks:
-    - name: display the file content
-      debug:
-        msg: "{{file_data}}"
-        
-    - name: Slurp the file content
-      ansible.builtin.slurp:
-        src: /etc/passwd
-      register: file_content
+     - name: read the file content
+        slurp:
+          src: /home/autoinstall/devdas/aap_test.txt
+        register: file_content
 
-    - name: display file content
-      debug:
-        msg: "{{file_content.content | b64decode }}"
+      - name: save file content
+        set_fact:
+          file_data: "{{ file_content['content'] | b64decode }}"
+
+      - name: display file content
+        debug:
+          msg: "{{file_data}}"
