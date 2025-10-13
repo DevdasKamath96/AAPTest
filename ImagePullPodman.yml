@@ -4,7 +4,4 @@
   tasks:
     - name: Pull msi dev regitry image with Podman using registry credentials
       containers.podman.podman_image:
-        name: msidevregistrt.azurecr.io/rhel810_platform/rhel810_catui:R14_000_00_D14_000_00_011020251948
-        state: present
-        username: "msidevregistrt"
-        password: "FLNtKsvwkF8Wdd//SX2Agnd8QBA0IAurKrKuwQKIlT+ACRDkyAA/"
+        name: "{{registry}}/{{IMAGE}}"
