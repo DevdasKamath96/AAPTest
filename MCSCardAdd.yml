@@ -27,7 +27,6 @@
         body: "{{ add_request }}"
         body_format: json
       register: add_container_resp
-      when: dry_run == 0
       failed_when: add_container_resp.json.code | int not in [200, 201]
 
 
