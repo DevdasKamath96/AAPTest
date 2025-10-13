@@ -1,4 +1,4 @@
-- name: Configure MCS Card
+- name: Launch MCS Card
   hosts: all
   gather_facts: no
 
@@ -28,13 +28,14 @@
     - name: Container configure request
       set_fact:
         container_launch: >
-           {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_LAUNCH","actionObject":[
-            {% for item in doc1 %}
-                 {% if item.SERVICETYPE == SERVICETYPE and item.STATUS == 0 %}
-                     {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":1,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"},
-                 {% endif %}
-            {% endfor %}
-            ]}
+           {% for item in doc1 %}
+             {% if item.SERVICETYPE == SERVICETYPE and item.STATUS == 1 %}
+                 {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_LAUNCH","actionObject":[
+                           {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":1,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"},
+            ], "object":{"dgId": "{{ item.PTTSERVERID[2:-1] }}"}
+                }
+             {% endif %}
+           {% endfor %}
 
     - name: Launch microservice containers
       uri:
