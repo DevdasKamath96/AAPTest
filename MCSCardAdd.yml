@@ -16,7 +16,7 @@
 
     - name: Add microservice containers
       uri:
-        url: "http://{{ cms.url }}/cms/networkmap?v=1620732259069"
+        url: "http://{{ cms_url }}/cms/networkmap?v=1620732259069"
         method: POST
         headers:
           Connection: 'keep-alive'
