@@ -18,13 +18,13 @@
       async: 3000
       poll: 0
 
-    - name: Wait for all async jobs to finish
-      async_status:
-        jid: "{{ item.ansible_job_id }}"
-      register: job_result
-      until: job_result.finished
-      retries: 30
-      delay: 10
-      loop: "{{ async_jobs.results }}"
-      loop_control:
-        label: "{{ item.item }}"
+    # - name: Wait for all async jobs to finish
+    #   async_status:
+    #     jid: "{{ item.ansible_job_id }}"
+    #   register: job_result
+    #   until: job_result.finished
+    #   retries: 30
+    #   delay: 10
+    #   loop: "{{ async_jobs.results }}"
+    #   loop_control:
+    #     label: "{{ item.item }}"
