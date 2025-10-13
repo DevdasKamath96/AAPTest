@@ -11,11 +11,11 @@
 
     - name: Get the list of microservice containers
       uri:
-         url: "http://{{ cms.url }}/cms/networkmap?v=1620732259069"
+         url: "http://{{ cms_url }}/cms/networkmap?v=1620732259069"
          method: POST
          headers:
            Connection: 'keep-alive'
-           Authorization: 'Bearer {{ cms_login_token }} '
+           Authorization: 'Bearer {{ cms_token }} '
            Accept: 'application/json, text/plain, */*'
          validate_certs: no
          timeout: 420
