@@ -1,11 +1,34 @@
-- name: Test EMS API
+- name: Adding MCS Card
   hosts: all
-  gather_facts: yes
+  gather_facts: no
 
   tasks:
-  
-    - name: Display the token
-      debug:
-        msg: "{{cms_token}}"
-      
-      
+    - name: Generate add microservice containers request
+      set_fact:
+        add_request: >
+          {"context":"MICROSVC_CARDCONFIG","action":"MICROSVC_CARDCONFIG_ADD","actionObject":[
+              # card_key is combination of cardname, clusterid, chassis id and version separated by '-'
+              {"INSTANCE_TYPE":"{{ INSTANCE_TYPE }}","NO_OF_INSTANCE":1,"VERSION":"{{ VERSION }}","CLUSTERID":"{{ CLUSTERID }}","CHASSISID":"{{ CHASSISID }}","INSTANCE_IPADDRESS":"","INSTANCE_HOSTNAME":""}
+          ]}
+
+    - debug:
+        msg: "{{ add_request  }}"
+
+    - name: Add microservice containers
+      uri:
+        url: "http://{{ cms.url }}/cms/networkmap?v=1620732259069"
+        method: POST
+        headers:
+          Connection: 'keep-alive'
+          Authorization: 'Bearer {{ cms_token }} '
+          Accept: 'application/json, text/plain, */*'
+        validate_certs: no
+        timeout: 5400
+        body: "{{ add_request }}"
+        body_format: json
+      register: add_container_resp
+      when: dry_run == 0
+      failed_when: add_container_resp.json.code | int not in [200, 201]
+
+
+
