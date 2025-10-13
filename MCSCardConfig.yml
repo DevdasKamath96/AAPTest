@@ -1,0 +1,56 @@
+- name: Configure MCS Card
+  hosts: all
+  gather_facts: no
+
+  tasks:
+
+    - set_fact:
+        primary_route: "{{ primary_route | default('') }}"
+        geo_route: "{{ geo_route | default('') }}"
+
+
+    - name: Get the list of microservice containers
+      uri:
+         url: "http://{{ cms.url }}/cms/networkmap?v=1620732259069"
+         method: POST
+         headers:
+           Connection: 'keep-alive'
+           Authorization: 'Bearer {{ cms_login_token }} '
+           Accept: 'application/json, text/plain, */*'
+         validate_certs: no
+         timeout: 420
+         body: '{"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_GETALL","object":{"dgId":""}}'
+         body_format: json
+      register: container_add
+      failed_when: container_add.status not in [200, 201]
+
+    - name: Filter microservice containers list
+      set_fact:
+          doc1: "{{ container_add |to_json| from_json | json_query('json.data.values[]') }}"
+
+
+    - name: Container configure request
+      set_fact:
+        container_config: >
+           {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_CONFIGURE","actionObject":[
+            {% for item in doc1 %}
+                 {% if item.HOSTNAME == HOSTNAME %}
+                     {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":0,"IMAGE":"{{ IMAGE }}","ROUTES":{% if item.CLUSTERID == 1 %} "{{ primary_route }}" {% elif item.CLUSTERID == 2 %} "{{ geo_route }}" {% endif %} ,"INTERFACE":null,"SERVICETYPE":"{{ item.SERVICETYPE }}","SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}","CPU_SET_CPUS": null,"SYNCGWREP_SYNCGWFUNC_FLAG":0},
+                 {% endif %}
+            {% endfor %}
+            ]}
+
+    - name: Add microservice containers
+      uri:
+        url: "http://{{ cms_url }}/cms/networkmap?v=1620732259069"
+        method: POST
+        headers:
+          Connection: 'keep-alive'
+          Authorization: 'Bearer {{ cms_token }} '
+          Accept: 'application/json, text/plain, */*'
+        validate_certs: no
+        timeout: 420
+        body: '{{ container_config }}'
+        body_format: json
+      register: container_configure
+      failed_when: container_configure.json.code | int not in [200, 201]
