@@ -1,7 +1,30 @@
 - name: Pull container image using Podman with credentials and signed key
   hosts: all
-
+  become: true
+  
   tasks:
-    - name: Pull msi dev regitry image with Podman using registry credentials
+
+    - name: Log in to Azure Container Registry
+      containers.podman.podman_login:
+        registry: "{{ lookup('env', 'REGISTRY_URL') }}"
+        username: "{{ lookup('env', 'REGISTRY_USERNAME') }}"
+        password: "{{ lookup('env', 'REGISTRY_PASSWORD') }}"
+
+    - name: Pull image from private registry
       containers.podman.podman_image:
-        name: "{{REGISTRY}}/{{IMAGE}}"
+        name: "{{ lookup('env', 'REGISTRY_URL') }}/{{ IMAGE }}"
+        pull: true
+      register: async_jobs
+      async: 3000
+      poll: 0
+
+    - name: Wait for all async jobs to finish
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 30
+      delay: 10
+      loop: "{{ async_jobs.results }}"
+      loop_control:
+        label: "{{ item.item }}"
