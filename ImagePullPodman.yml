@@ -15,8 +15,8 @@
         name: "{{ lookup('env', 'REGISTRY_URL') }}/{{ IMAGE }}"
         pull: true
       register: async_jobs
-      async: 3000
-      poll: 0
+      async: 18000
+      poll: 10
 
     # - name: Wait for all async jobs to finish
     #   async_status:
