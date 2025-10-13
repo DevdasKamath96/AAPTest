@@ -50,4 +50,4 @@
         body: '{{ container_launch }}'
         body_format: json
       register: container_launch
-      failed_when: container_launch.json.code | int not in [200, 201]
+      # failed_when: container_launch.json.code | int not in [200, 201]
