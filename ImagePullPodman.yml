@@ -4,4 +4,4 @@
   tasks:
     - name: Pull msi dev regitry image with Podman using registry credentials
       containers.podman.podman_image:
-        name: "{{registry}}/{{IMAGE}}"
+        name: "{{REGISTRY}}/{{IMAGE}}"
