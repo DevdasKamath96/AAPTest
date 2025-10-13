@@ -31,15 +31,14 @@
            {% for item in doc1 %}
              {% if item.SERVICETYPE == SERVICETYPE and item.STATUS == 1 %}
                  {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_LAUNCH","actionObject":[
-                           {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":1,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"},
-            ], "object":{"dgId": "{{ item.PTTSERVERID[2:-1] }}"}
+                           {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":1,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"}], "object":{"dgId": "{{ item.PTTSERVERID[2:-1] }}"}
                 }
              {% endif %}
            {% endfor %}
 
     - name: Launch microservice containers
       uri:
-        url: "http://{{ cms_url }}/cms/networkmap?v=1620732259069"
+        url: "http://{{ cms_url }}/cms/config?v=1760345592484"
         method: POST
         headers:
           Connection: 'keep-alive'
@@ -50,4 +49,4 @@
         body: '{{ container_launch }}'
         body_format: json
       register: container_launch
-      # failed_when: container_launch.json.code | int not in [200, 201]
+#      failed_when: container_launch.json.code | int not in [200, 201]
