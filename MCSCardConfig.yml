@@ -34,7 +34,7 @@
         container_config: >
            {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_CONFIGURE","actionObject":[
             {% for item in doc1 %}
-                 {% if item.HOSTNAME == HOSTNAME %}
+                 {% if item.cardDetails[0].HOSTNAME == HOSTNAME %}
                      {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":0,"IMAGE":"{{ IMAGE }}","ROUTES":{% if item.CLUSTERID == 1 %} "{{ primary_route }}" {% elif item.CLUSTERID == 2 %} "{{ geo_route }}" {% endif %} ,"INTERFACE":null,"SERVICETYPE":"{{ item.SERVICETYPE }}","SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}","CPU_SET_CPUS": null,"SYNCGWREP_SYNCGWFUNC_FLAG":0},
                  {% endif %}
             {% endfor %}
