@@ -38,7 +38,7 @@
 
     - name: delete microservice containers instance
       uri:
-        url: "http://{{ cms_url }}/cms/config?v=1760345592484"
+        url: "http://{{ cms_url }}/cms/config?v=1760512865811"
         method: POST
         headers:
           Connection: 'keep-alive'
