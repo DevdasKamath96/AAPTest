@@ -32,7 +32,7 @@
              {% if item.CONTAINER_SIGCARDID in SIGNALLING_CARD_IDS %}
                  {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CARDCONFIG_DELETE","actionObject":[
                            {"SERVICETYPE": "{{SERVICETYPE}}", "SIGNALINGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}", "SIGNALINGCARD_NAME": "{{item.SIGNALINGCARD_NAME}}", "SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"CLUSTERID": "{{CLUSTERID}}", "CHASSISID": "{{CHASSISID}}"},
-                }
+                ]}
              {% endif %}
            {% endfor %}
 
