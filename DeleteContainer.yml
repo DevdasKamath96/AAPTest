@@ -29,24 +29,24 @@
       set_fact:
         container_delete: >
            {% for item in doc1 %}
-             {% if item.SERVICETYPE == SERVICETYPE and item.STATUS == 3 %}
+             {% if item.CONTAINER_SIGCARDID in SIGNALLING_CARD_IDS %}
                  {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_LAUNCH","actionObject":[
                            {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":3,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"}], "object":{"dgId": "{{ item.PTTSERVERID[2:-1] }}"}
                 }
              {% endif %}
            {% endfor %}
 
-#    - name: delete microservice containers
-#      uri:
-#        url: "http://{{ cms_url }}/cms/config?v=1760345592484"
-#        method: POST
-#        headers:
-#          Connection: 'keep-alive'
-#          Authorization: 'Bearer {{ cms_token }} '
-#          Accept: 'application/json, text/plain, */*'
-#        validate_certs: no
-#        timeout: 420
-#        body: '{{ container_delete }}'
-#        body_format: json
-#      register: container_delete
-#      failed_when: container_launch.json.code | int not in [200, 201]
+    - name: delete microservice containers
+      uri:
+        url: "http://{{ cms_url }}/cms/config?v=1760345592484"
+        method: POST
+        headers:
+          Connection: 'keep-alive'
+          Authorization: 'Bearer {{ cms_token }} '
+          Accept: 'application/json, text/plain, */*'
+        validate_certs: no
+        timeout: 420
+        body: '{{ container_delete }}'
+        body_format: json
+      register: container_delete
+      failed_when: container_launch.json.code | int not in [200, 201]
