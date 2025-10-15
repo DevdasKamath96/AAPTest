@@ -30,7 +30,7 @@
         container_delete: >
            {% for item in doc1 %}
              {% if item.CONTAINER_SIGCARDID in SIGNALLING_CARD_IDS %}
-                 {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_LAUNCH","actionObject":[
+                 {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_DELETE","actionObject":[
                            {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":3,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"}], "object":{"dgId": "{{ item.PTTSERVERID[2:-1] }}"}
                 }
              {% endif %}
