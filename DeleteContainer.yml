@@ -25,17 +25,17 @@
           doc1: "{{ container_add |to_json| from_json | json_query('json.data.values[]') }}"
 
 
-#    - name: Container delete request
-#      set_fact:
-#        container_delete: >
-#           {% for item in doc1 %}
-#             {% if item.SERVICETYPE == SERVICETYPE and item.STATUS == 3 %}
-#                 {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_LAUNCH","actionObject":[
-#                           {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":3,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"}], "object":{"dgId": "{{ item.PTTSERVERID[2:-1] }}"}
-#                }
-#             {% endif %}
-#           {% endfor %}
-#
+    - name: Container delete request
+      set_fact:
+        container_delete: >
+           {% for item in doc1 %}
+             {% if item.SERVICETYPE == SERVICETYPE and item.STATUS == 3 %}
+                 {"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_LAUNCH","actionObject":[
+                           {"CONTAINER_SIGCARDID":{{item.CONTAINER_SIGCARDID}},"IPADDRESS":"{{ item.IPADDRESS }}","SIGNALINGCARDTYPE":{{ item.SIGNALINGCARDTYPE }},"STATUS":3,"SIGNALINGCARD_NAME":"{{ item.SIGNALINGCARD_NAME }}","PTTSERVERID":"{{ item.PTTSERVERID }}"}], "object":{"dgId": "{{ item.PTTSERVERID[2:-1] }}"}
+                }
+             {% endif %}
+           {% endfor %}
+
 #    - name: delete microservice containers
 #      uri:
 #        url: "http://{{ cms_url }}/cms/config?v=1760345592484"
