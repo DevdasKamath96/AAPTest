@@ -16,7 +16,7 @@
         validate_certs: no
         url_username: "{{ aap_username }}"
         url_password: "{{ aap_password }}"
-        register: aap_token_response
+      register: aap_token_response
 
     - name: Set AAP token fact
       set_fact:
@@ -30,7 +30,7 @@
           Authorization: "Bearer {{ aap_token }}"
           Content-Type: "application/json"
         validate_certs: no
-        register: project_info
+      register: project_info
 
     - name: Set project_dir fact from AAP API response
       set_fact:
