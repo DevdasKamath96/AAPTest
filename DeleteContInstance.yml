@@ -5,7 +5,7 @@
   tasks:
 
     - name: Fetch EMS Token if cms_token is undefined
-      include_tasks: FetchEMSToken.yml
+      include_tasks: ./FetchEMSToken.yml
       when: cms_token is not defined
       register: fetched_token
 
