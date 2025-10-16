@@ -1,4 +1,4 @@
-- name: Stop active container service
+- name: Stop active MCS Container Service
   hosts: all
   gather_facts: no
 
@@ -16,12 +16,12 @@
          timeout: 420
          body: '{"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_GETALL","object":{"dgId":""}}'
          body_format: json
-      register: container_add
-      failed_when: container_add.status not in [200, 201]
+      register: container_data
+      failed_when: container_data.status not in [200, 201]
 
     - name: Filter microservice containers list
       set_fact:
-          doc1: "{{ container_add |to_json| from_json | json_query('json.data.values[]') }}"
+          doc1: "{{ container_data |to_json| from_json | json_query('json.data.values[]') }}"
 
 
     - name: Container delete request
@@ -30,8 +30,7 @@
 
     - name: Get EMS Container
       community.docker.docker_container_info:
-        filters:
-          name: "emsprimary"
+        name: "emsprimary"
       register: container_info
 
     - name: Display matching container names
