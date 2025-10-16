@@ -4,15 +4,37 @@
 
   tasks:
 
-    - name: Fetch EMS Token if cms_token is undefined
-      include_tasks: ./FetchEMSToken.yml
-      when: cms_token is not defined
-      register: fetched_token
 
-    - name: Set cms_token from fetched_token
+    - name: Get AAP authentication token
+      uri:
+      url: "{{ aap_url }}/api/v2/tokens/"
+      method: POST
+      headers:
+        Content-Type: "application/json"
+      body: '{}'
+      body_format: json
+      validate_certs: no
+      url_username: "{{ aap_username }}"
+      url_password: "{{ aap_password }}"
+      register: aap_token_response
+
+    - name: Set AAP token fact
       set_fact:
-        cms_token: "{{ fetched_token.cms_token }}"
-      when: cms_token is not defined
+      aap_token: "{{ aap_token_response.json.token }}"
+
+    - name: Get absolute path of the project directory using AAP API
+      uri:
+      url: "{{ aap_url }}/api/v2/projects/{{ project_id }}/"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ aap_token }}"
+        Content-Type: "application/json"
+      validate_certs: no
+      register: project_info
+
+    - name: Set project_dir fact from AAP API response
+      set_fact:
+      project_dir: "{{ project_info.json.local_path }}"
 
     - name: Get the list of microservice containers
       uri:
