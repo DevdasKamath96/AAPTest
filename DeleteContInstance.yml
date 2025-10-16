@@ -4,6 +4,15 @@
 
   tasks:
 
+    - name: Fetch EMS Token if cms_token is undefined
+      include_tasks: FetchEMSToken.yml
+      when: cms_token is not defined
+      register: fetched_token
+
+    - name: Set cms_token from fetched_token
+      set_fact:
+        cms_token: "{{ fetched_token.cms_token }}"
+      when: cms_token is not defined
 
     - name: Get the list of microservice containers
       uri:
