@@ -1,0 +1,56 @@
+- name: Stop active container service
+  hosts: all
+  gather_facts: no
+
+  tasks:
+
+    - name: Get the list of microservice containers
+      uri:
+         url: "http://{{ cms_url }}/cms/networkmap?v=1620732259069"
+         method: POST
+         headers:
+           Connection: 'keep-alive'
+           Authorization: 'Bearer {{ cms_token }} '
+           Accept: 'application/json, text/plain, */*'
+         validate_certs: no
+         timeout: 420
+         body: '{"context":"MICROSVC_CONTAINERCONFIG","action":"MICROSVC_CONTAINERCONFIG_GETALL","object":{"dgId":""}}'
+         body_format: json
+      register: container_add
+      failed_when: container_add.status not in [200, 201]
+
+    - name: Filter microservice containers list
+      set_fact:
+          doc1: "{{ container_add |to_json| from_json | json_query('json.data.values[]') }}"
+
+
+    - name: Container delete request
+      set_fact:
+        ip_list: "{{ doc1 | selectattr('CONTAINER_SIGCARDID', 'in', SIGNALLING_CARD_IDS) | map(attribute='IPADDRESS') | list }}"
+
+    - name: Get EMS Container
+      community.docker.docker_container_info:
+        filters:
+          name: "emsprimary"
+      register: container_info
+
+    - name: Display matching container names
+      debug:
+        var: container_info.containers
+
+    - name: Set container name fact
+      set_fact:
+         container_name: "{{ container_info.containers[0].Names[0] | regex_replace('^/', '') }}"
+
+    - name: Run command in container
+      community.docker.docker_container_exec:
+        container: "{{container_name}}"
+        command: "source /DG/activeRelease/Tools/kodiakScripts.conf; perl /DG/activeRelease/Tools/ManageKodiakService.pl {{item}} stop"
+      register: exec_result
+      with_items: "{{ ip_list }}"
+
+    - name: Display command output
+      debug:
+        var: exec_result
+
+
