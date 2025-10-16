@@ -30,7 +30,7 @@
 
     - name: Get EMS Container
       community.docker.docker_container_info:
-        name: "emsprimary"
+        name: "PROJ-emsprimary-emsdsn-R14_000_00_D14_000_00_290920250426"
       register: container_info
       become: true
 
