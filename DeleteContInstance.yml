@@ -24,6 +24,9 @@
             data:
               cms_token: '{{ result.json.accessToken }}'
             aggregate: no
+
+        - debug:
+            msg: "{{ cms_token }}"
       when: cms_token is not defined
       
 
