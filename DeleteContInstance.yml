@@ -4,39 +4,28 @@
 
   tasks:
 
+    - block:
+        - name: Generate the API authenticator token.
+          uri:
+            url: "http://{{ cms_url }}/cms/login?v=1618381584572"
+            method: POST
+            body:
+              user: '{{ cms_user }}'
+              password: '{{ cms_password }}'
+            body_format: json
+            headers:
+              Connection: 'keep-alive'
+          register: result
+          failed_when: result.status not in [200, 201]
 
-    - name: Get AAP authentication token
-      uri:
-        url: "https://{{ aap_url }}/api/v2/tokens/"
-        method: POST
-        headers:
-          Content-Type: "application/json"
-        body: '{}'
-        body_format: json
-        validate_certs: no
-        user: "{{ aap_username }}"
-        password: "{{ aap_password }}"
-        force_basic_auth: yes
-      register: aap_token_response
 
-
-    - name: Set AAP token fact
-      set_fact:
-        aap_token: "{{ aap_token_response.json.token }}"
-
-    - name: Get absolute path of the project directory using AAP API
-      uri:
-        url: "https://{{ aap_url }}/api/v2/projects/{{ project_id }}/"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ aap_token }}"
-          Content-Type: "application/json"
-        validate_certs: no
-      register: project_info
-
-    - name: Set project_dir fact from AAP API response
-      set_fact:
-        project_dir: "{{ project_info.json.local_path }}"
+        - name: Aggregating packages_installed stat per host
+          ansible.builtin.set_stats:
+            data:
+              cms_token: '{{ result.json.accessToken }}'
+            aggregate: no
+      when: cms_token is not defined
+      
 
     - name: Get the list of microservice containers
       uri:
