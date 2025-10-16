@@ -32,6 +32,7 @@
       community.docker.docker_container_info:
         name: "emsprimary"
       register: container_info
+      become: true
 
     - name: Display matching container names
       debug:
@@ -46,6 +47,7 @@
         container: "{{container_name}}"
         command: "source /DG/activeRelease/Tools/kodiakScripts.conf; perl /DG/activeRelease/Tools/ManageKodiakService.pl {{item}} stop"
       register: exec_result
+      become: true
       with_items: "{{ ip_list }}"
 
     - name: Display command output
