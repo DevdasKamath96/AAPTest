@@ -20,10 +20,8 @@
 
 
         - name: Aggregating packages_installed stat per host
-          ansible.builtin.set_stats:
-            data:
+          set_fact:
               cms_token: '{{ result.json.accessToken }}'
-            aggregate: no
 
         - debug:
             msg: "{{ cms_token }}"
