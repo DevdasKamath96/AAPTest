@@ -14,9 +14,11 @@
         body: '{}'
         body_format: json
         validate_certs: no
-        url_username: "{{ aap_username }}"
-        url_password: "{{ aap_password }}"
+        user: "{{ aap_username }}"
+        password: "{{ aap_password }}"
+        force_basic_auth: yes
       register: aap_token_response
+
 
     - name: Set AAP token fact
       set_fact:
