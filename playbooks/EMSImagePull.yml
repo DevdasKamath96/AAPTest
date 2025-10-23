@@ -1,0 +1,19 @@
+- name: Pull EMS Image from Private Registry
+  hosts: all
+  become: true
+  
+  tasks:
+
+    - name: Log in to Azure Container Registry
+      containers.podman.podman_login:
+        registry: "{{ lookup('env', 'REGISTRY_URL') }}"
+        username: "{{ lookup('env', 'REGISTRY_USERNAME') }}"
+        password: "{{ lookup('env', 'REGISTRY_PASSWORD') }}"
+
+    - name: Pull image from private registry
+      containers.podman.podman_image:
+        name: "{{ lookup('env', 'REGISTRY_URL') }}/{{ IMAGE }}"
+        pull: true
+      register: async_jobs
+      async: 18000
+      poll: 10

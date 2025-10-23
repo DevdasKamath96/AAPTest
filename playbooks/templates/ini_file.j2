@@ -1,0 +1,20 @@
+[container_1]
+{% for key, value in INI_FILE_DATA.items() %}
+{%- if key == 'interface' %}
+{%- for item in value %}
+interface={{ item }}
+{% endfor %}
+{%- elif key == 'ipaddr' %}
+{%- for item in value %}
+ipaddr={{ item }}
+{% endfor %}
+{%- elif key == 'route' %}
+{%- for item in value %}
+route={{ item }}
+{% endfor %}
+{%- elif key == 'RHELIDM_INSTANCE_INFO' %}
+RHELIDM_INSTANCE_INFO={{ value | to_json }}
+{%- else %}
+{{ key }}={{ value }}
+{% endif %}
+{%- endfor %}

@@ -1,0 +1,209 @@
+- name: Launch EMS Container
+  hosts: all
+  become: true
+  become_method: sudo
+
+  tasks:          
+
+    - name: Create ini file from template
+      template:
+        src: "./templates/ini_file.j2"
+        dest: /DGdata/Software/{{INIFILE | basename}}
+        owner: "{{ ansible_ssh_user }}"
+        group: kodiakgroup
+
+    - name: Copy the service template to /home/autoinstall/ in ems container
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: /bin/cp /Software/{{INIFILE | basename}} /home/autoinstall/{{INIFILE | basename}}
+
+    # - name: BringingUp Services master
+    #   podman_container_exec:
+    #     name: "{{CONTAINERNAME}}"
+    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} config /home/autoinstall/{{INIFILE | basename}}
+    #   register: shell_result
+    #   async: 3600
+    #   poll: 10
+    #   ignore_errors: true
+    #   ignore_unreachable: true
+    #   become: true
+    #   become_method: sudo
+    #   when: group_master in group_names
+
+
+    # - name: Verify idm integration
+    #   podman_container_exec:
+    #     name: "{{CONTAINERNAME}}"
+    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} verify
+    #   register: verify_idm_integration_master
+    #   when: group_master in group_names
+
+    # - debug: var=verify_idm_integration_master
+
+    # - name: BringingUp Services on replica
+    #   podman_container_exec:
+    #     name: "{{CONTAINERNAME}}"
+    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} config /home/autoinstall/{{INIFILE | basename}}
+    #   register: shell_result
+    #   async: 3600
+    #   poll: 10
+    #   ignore_errors: true
+    #   ignore_unreachable: true
+    #   become: yes
+    #   become_method: sudo
+    #   when: group_replica in group_names
+
+    # - name: Verify idm integration
+    #   podman_container_exec:
+    #     name: "{{CONTAINERNAME}}"
+    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} verify
+    #   register: verify_idm_integration_replica
+    #   when: group_replica in group_names
+
+    # - debug: var=verify_idm_integration_replica
+
+    - name: BringingUp Services on clients
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: sh /DG/activeRelease/container/scripts/ipaserver/{{CONFIG_SCRIPT | basename}} config /home/autoinstall/{{INIFILE | basename}}
+      register: shell_result
+      async: 3600
+      poll: 10
+      ignore_errors: true
+      ignore_unreachable: true
+      become: true
+      become_method: sudo
+      when: group_poc in group_names or group_nni in group_names
+
+
+    - name: Verify idm integration
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: sh /DG/activeRelease/container/scripts/ipaserver/{{CONFIG_SCRIPT | basename}} verify
+      register: verify_idm_integration
+      when: group_poc in group_names or group_nni in group_names
+
+    - debug: var=verify_idm_integration
+
+    - name: Copy the Ans template from ProdAuto container to VM
+      copy:
+        src: "{{ANS}}"
+        dest: /DGdata/Software/{{ANS | basename}}
+      when: group_master not in group_names and group_replica not in group_names
+
+    - name: Copy the answer template from VM to Container
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: /bin/cp /Software/{{ANS | basename}} /home/autoinstall/EMS.ans
+      when: group_master not in group_names and group_replica not in group_names
+
+    - name: verify primary EMS services status
+      async: 400
+      poll: 10
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
+      register: verify_ems_status
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1
+      ignore_errors: true
+
+    - name: configuring primary EMS services
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: sh /DG/activeRelease/Tools/EMSContainerConfig.sh -answerfile=/home/autoinstall/EMS.ans -install
+      register: shell_result
+      async: 3600
+      poll: 10
+      ignore_unreachable: true
+      become: true
+      become_method: sudo
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1 and verify_ems_status.failed == true
+
+    - name: verify primary EMS services status
+      async: 600
+      poll: 20
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
+      register: verify_ems_status_res
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1
+
+    - name: copy the /DGdata/Software/ttcred.properties from Primary EMS VM to /Software/ path of Prod Automation
+      fetch:
+        src: "/DGdata/Software/ttcred.properties"
+        dest: "/Software/ttcred.properties"
+        flat: yes
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1
+
+
+    - name: copy the /Software/ttcred.properties from prod automation to /DGdata/Software/ path of ems vms
+      copy:
+        src: "/Software/ttcred.properties"
+        dest: "/DGdata/Software/ttcred.properties"
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE != 1
+
+    - name: verify secondary EMS services status
+      async: 400
+      poll: 10
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
+      register: verify_sec_ems_status
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 2
+      ignore_errors: true
+
+    - name: configuring secondary EMS services
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: sh /DG/activeRelease/Tools/EMSContainerConfig.sh -answerfile=/home/autoinstall/EMS.ans -install
+      register: shell_result
+      async: 3600
+      poll: 10
+      ignore_unreachable: true
+      become: true
+      become_method: sudo
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 2 and verify_sec_ems_status.failed == true
+
+    - name: verify secondary EMS services status
+      async: 600
+      poll: 20
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
+      register: verify_sec_ems_status
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 2
+
+    - name: verify geo EMS services status
+      async: 400
+      poll: 10
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
+      register: verify_geo_ems_status
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 3
+      ignore_errors: true
+
+    - name: configuring GEO  EMS services
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: sh /DG/activeRelease/Tools/EMSContainerConfig.sh -answerfile=/home/autoinstall/EMS.ans -install
+      register: shell_result
+      async: 3600
+      poll: 10
+      ignore_unreachable: true
+      become: true
+      become_method: sudo
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 3 and verify_geo_ems_status.failed == true
+
+    - name: verify geo EMS services status
+      async: 600
+      poll: 20
+      podman_container_exec:
+        name: "{{CONTAINERNAME}}"
+        command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
+      register: verify_geo_ems_status
+      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 3
+
+
+
+

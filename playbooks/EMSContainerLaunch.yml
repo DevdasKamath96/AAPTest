@@ -1,0 +1,55 @@
+- name: Launch EMS Container
+  hosts: all
+  become: true
+  become_method: sudo
+  
+  tasks:
+    - name: Executing Container Launch Execution
+      shell: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/"{{INIFILE | basename}}"
+      register: shell_result
+      become: true
+      become_method: sudo
+
+    - debug: var=shell_result
+
+    - name: Starting container service
+      containers.podman.podman_container:
+        name: "{{ CONTAINERNAME }}"
+        state: started
+      become: true
+      become_method: sudo
+      ignore_errors: true
+
+
+    - name: Check the Container state
+      containers.podman.podman_container_info:
+        name: "{{ CONTAINERNAME }}"
+      register: container_info
+      until: container_info.containers[0].State.Status == "running"
+      retries: 6
+      delay: 10
+      ignore_errors: true
+
+    - debug: var=container_info
+
+    - name: service failure
+      fail: msg="Container has failed to comeup"
+      when: container_info.containers | length == 0 or container_info.containers[0].State.Status != "running"
+
+    - name: Container launch success
+      debug: msg="Container launch successful"
+      when: container_info.containers | length > 0 and container_info.containers[0].State.Status == "running"
+
+    - wait_for_connection:
+        delay: 100
+        timeout: 120
+
+    - name: Cleaning known_hosts in EMS
+      containers.podman.podman_container_exec:
+        name: "{{ CONTAINERNAME }}"
+        command: bash -c "ssh-keygen -R {{ CONTAINERIP }} -f /root/.ssh/known_hosts"
+      register: keyremoval
+      delegate_to: 127.0.0.1
+      ignore_errors: true
+      become: true
+      become_method: sudo
