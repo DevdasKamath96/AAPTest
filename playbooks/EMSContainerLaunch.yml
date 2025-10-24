@@ -18,29 +18,23 @@
       when: not ini_file_check.stat.exists
 
     - name: Executing Container Launch Execution
-      command: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/{{INIFILE | basename}}
+      shell: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/{{INIFILE | basename}}
       register: shell_result
+      become: true
+      become_method: sudo
 
     - debug: var=shell_result
 
-    - name: Sleep for 10 seconds
-      pause:
-        seconds: 10
-
-    - name: Starting container service
+    - name: Start container using podman
       containers.podman.podman_container:
-        name: "{{ CONTAINERNAME }}"
+        name: {{ CONTAINERNAME }}
         state: started
       ignore_errors: true
-
-    # - name: Executing Container Launch Execution
-    #   command: podman start {{ CONTAINERNAME }}
-    #   register: shell_result
 
 
     - name: Check the Container state
       containers.podman.podman_container_info:
-        name: "{{ CONTAINERNAME }}"
+        name: {{ CONTAINERNAME }}
       register: container_info
       until: container_info.containers[0].State.Status == "running"
       retries: 6
