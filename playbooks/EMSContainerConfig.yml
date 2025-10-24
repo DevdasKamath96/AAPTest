@@ -13,7 +13,7 @@
         group: kodiakgroup
 
     - name: Copy the service template to /home/autoinstall/ in ems container
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: /bin/cp /Software/{{INIFILE | basename}} /home/autoinstall/{{INIFILE | basename}}
 
@@ -63,7 +63,7 @@
     # - debug: var=verify_idm_integration_replica
 
     - name: BringingUp Services on clients
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: sh /DG/activeRelease/container/scripts/ipaserver/{{CONFIG_SCRIPT | basename}} config /home/autoinstall/{{INIFILE | basename}}
       register: shell_result
@@ -77,7 +77,7 @@
 
 
     - name: Verify idm integration
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: sh /DG/activeRelease/container/scripts/ipaserver/{{CONFIG_SCRIPT | basename}} verify
       register: verify_idm_integration
@@ -92,7 +92,7 @@
       when: group_master not in group_names and group_replica not in group_names
 
     - name: Copy the answer template from VM to Container
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: /bin/cp /Software/{{ANS | basename}} /home/autoinstall/EMS.ans
       when: group_master not in group_names and group_replica not in group_names
@@ -100,7 +100,7 @@
     - name: verify primary EMS services status
       async: 400
       poll: 10
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_ems_status
@@ -108,7 +108,7 @@
       ignore_errors: true
 
     - name: configuring primary EMS services
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: sh /DG/activeRelease/Tools/EMSContainerConfig.sh -answerfile=/home/autoinstall/EMS.ans -install
       register: shell_result
@@ -122,7 +122,7 @@
     - name: verify primary EMS services status
       async: 600
       poll: 20
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_ems_status_res
@@ -145,7 +145,7 @@
     - name: verify secondary EMS services status
       async: 400
       poll: 10
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_sec_ems_status
@@ -153,7 +153,7 @@
       ignore_errors: true
 
     - name: configuring secondary EMS services
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: sh /DG/activeRelease/Tools/EMSContainerConfig.sh -answerfile=/home/autoinstall/EMS.ans -install
       register: shell_result
@@ -167,7 +167,7 @@
     - name: verify secondary EMS services status
       async: 600
       poll: 20
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_sec_ems_status
@@ -176,7 +176,7 @@
     - name: verify geo EMS services status
       async: 400
       poll: 10
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_geo_ems_status
@@ -184,7 +184,7 @@
       ignore_errors: true
 
     - name: configuring GEO  EMS services
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: sh /DG/activeRelease/Tools/EMSContainerConfig.sh -answerfile=/home/autoinstall/EMS.ans -install
       register: shell_result
@@ -198,12 +198,11 @@
     - name: verify geo EMS services status
       async: 600
       poll: 20
-      podman_container_exec:
+      containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_geo_ems_status
       when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 3
-
 
 
 
