@@ -17,51 +17,6 @@
         name: "{{CONTAINERNAME}}"
         command: /bin/cp /Software/{{INIFILE | basename}} /home/autoinstall/{{INIFILE | basename}}
 
-    # - name: BringingUp Services master
-    #   podman_container_exec:
-    #     name: "{{CONTAINERNAME}}"
-    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} config /home/autoinstall/{{INIFILE | basename}}
-    #   register: shell_result
-    #   async: 3600
-    #   poll: 10
-    #   ignore_errors: true
-    #   ignore_unreachable: true
-    #   become: true
-    #   become_method: sudo
-    #   when: group_master in group_names
-
-
-    # - name: Verify idm integration
-    #   podman_container_exec:
-    #     name: "{{CONTAINERNAME}}"
-    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} verify
-    #   register: verify_idm_integration_master
-    #   when: group_master in group_names
-
-    # - debug: var=verify_idm_integration_master
-
-    # - name: BringingUp Services on replica
-    #   podman_container_exec:
-    #     name: "{{CONTAINERNAME}}"
-    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} config /home/autoinstall/{{INIFILE | basename}}
-    #   register: shell_result
-    #   async: 3600
-    #   poll: 10
-    #   ignore_errors: true
-    #   ignore_unreachable: true
-    #   become: yes
-    #   become_method: sudo
-    #   when: group_replica in group_names
-
-    # - name: Verify idm integration
-    #   podman_container_exec:
-    #     name: "{{CONTAINERNAME}}"
-    #     command: sh {{CONFIG_PATH}}/{{CONFIG_SCRIPT | basename}} verify
-    #   register: verify_idm_integration_replica
-    #   when: group_replica in group_names
-
-    # - debug: var=verify_idm_integration_replica
-
     - name: BringingUp Services on clients
       containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
@@ -87,7 +42,7 @@
 
     - name: Copy the Ans template from ProdAuto container to VM
       copy:
-        src: "{{ANS}}"
+        src: /home/autoinstall/temp/{{ANS | basename}}
         dest: /DGdata/Software/{{ANS | basename}}
       when: group_master not in group_names and group_replica not in group_names
 
