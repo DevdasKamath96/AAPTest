@@ -5,18 +5,18 @@
   tasks:
     - name: cleanup ini file
       file: 
-        path: /home/autoinstall/temp/"{{INIFILE | basename}}" 
+        path: /home/autoinstall/temp/{{INIFILE | basename}}
         state: absent
       ignore_errors: True
 
     - name: Create ini file from template
       template:
-        src: "./templates/ini_file.j2"
-        dest: /home/autoinstall/temp/"{{INIFILE | basename}}"
+        src: ./templates/ini_file.j2
+        dest: /home/autoinstall/temp/{{INIFILE | basename}}
         owner: "{{ ansible_ssh_user }}"
         group: kodiakgroup
      
     - name: Create Answer file from template
       template:
-        src: "./templates/ems_answer_file.j2"
-        dest: "/home/autoinstall/temp/{{ ANSWERFILE | basename }}"
+        src: ./templates/ems_answer_file.j2
+        dest: /home/autoinstall/temp/{{ ANS | basename }}
