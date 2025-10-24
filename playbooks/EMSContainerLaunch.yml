@@ -29,6 +29,9 @@
       containers.podman.podman_container:
         name: "{{ CONTAINERNAME }}"
         state: started
+        restart_policy: always
+        privileged: true
+        systemd: true
 
     - name: Check the Container state
       containers.podman.podman_container_info:
