@@ -18,7 +18,7 @@
       when: not ini_file_check.stat.exists
 
     - name: Executing Container Launch Execution
-      shell: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/{{INIFILE | basename}}
+      command: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/{{INIFILE | basename}}
       register: shell_result
 
     - debug: var=shell_result
