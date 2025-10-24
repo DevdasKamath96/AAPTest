@@ -5,7 +5,7 @@
   
   tasks:
     - name: Executing Container Launch Execution
-      shell: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/"{{INIFILE | basename}}"
+      shell: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/{{INIFILE | basename}}
       register: shell_result
       become: true
       become_method: sudo
