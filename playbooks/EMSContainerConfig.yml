@@ -1,7 +1,8 @@
-- name: Launch EMS Container
+- name: Configure EMS Container
   hosts: all
   become: true
   become_method: sudo
+  any_errors_fatal: true
 
   tasks:          
 
