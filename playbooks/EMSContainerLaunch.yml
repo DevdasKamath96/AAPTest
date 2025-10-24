@@ -23,11 +23,15 @@
 
     - debug: var=shell_result
 
-    - name: Starting container service
-      containers.podman.podman_container:
-        name: "{{ CONTAINERNAME }}"
-        state: started
-      ignore_errors: true
+    # - name: Starting container service
+    #   containers.podman.podman_container:
+    #     name: "{{ CONTAINERNAME }}"
+    #     state: started
+    #   ignore_errors: true
+
+    - name: Executing Container Launch Execution
+      command: podman start {{ CONTAINERNAME }}
+      register: shell_result
 
 
     - name: Check the Container state
