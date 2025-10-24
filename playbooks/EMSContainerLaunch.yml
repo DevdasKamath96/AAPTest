@@ -4,6 +4,19 @@
   become_method: sudo
   
   tasks:
+
+    - name: Check if INI file is present
+      stat:
+        path: /home/autoinstall/temp/{{INIFILE | basename}}
+      register: ini_file_check
+      become: true
+      become_method: sudo
+
+    - name: Fail if INI file does not exist
+      fail:
+        msg: "INI file {{INIFILE | basename}} not found at /home/autoinstall/temp/"
+      when: not ini_file_check.stat.exists
+
     - name: Executing Container Launch Execution
       shell: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/{{INIFILE | basename}}
       register: shell_result
