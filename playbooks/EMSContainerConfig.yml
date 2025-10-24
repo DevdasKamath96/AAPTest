@@ -49,7 +49,7 @@
     - name: Copy the answer template from EMS VM to Container
       containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
-        command: /bin/cp /DGdata/Software/{{ANS | basename}} /home/autoinstall/EMS.ans
+        command: /bin/cp /Software/{{ANS | basename}} /home/autoinstall/EMS.ans
       when: group_master not in group_names and group_replica not in group_names
 
     - name: verify primary EMS services status
