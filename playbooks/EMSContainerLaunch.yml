@@ -20,8 +20,6 @@
     - name: Executing Container Launch Execution
       shell: /usr/local/bin/create_kodiak_container.sh -p -f /home/autoinstall/temp/{{INIFILE | basename}}
       register: shell_result
-      become: true
-      become_method: sudo
 
     - debug: var=shell_result
 
@@ -29,8 +27,6 @@
       containers.podman.podman_container:
         name: "{{ CONTAINERNAME }}"
         state: started
-      become: true
-      become_method: sudo
       ignore_errors: true
 
 
