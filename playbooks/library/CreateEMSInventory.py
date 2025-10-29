@@ -1,13 +1,37 @@
 import os
+import re
 import sys
 import configparser
 from collections import OrderedDict
 from pwd import getpwuid, getpwnam
 from grp import getgrgid, getgrnam
 import logging
+from typing import List
+import yaml
+import ipaddress as newipaddress
+import json
 
 from create_inventory import CreateInventory
 
+class NoAliasDumper(yaml.SafeDumper):
+    def ignore_aliases(self, data):
+            return True
+
+class MyDumper(yaml.Dumper):  # your force-indent dumper
+
+    def increase_indent(self, flow=False, indentless=False):
+        return super(MyDumper, self).increase_indent(flow, False)
+    def ignore_aliases(self, data):
+            return True
+
+class QuotedString(str):  # just subclass the built-in str
+    pass
+
+def quoted_scalar(dumper, data):  # a representer to force quotations on scalars
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
+
+# add the QuotedString custom type with a forced quotation representer to your dumper
+MyDumper.add_representer(QuotedString, quoted_scalar)
 
 class Constants:
     AAP_API_URL = "https://controller.example.org/api/v2"
@@ -79,6 +103,55 @@ def setup_logging():
 
 ############# Creating a Dict with the List of Cards per Site with NNIGW RHELIDM #############
 def CreateContainerHash():
+    if SETUPTYPE.lower() == 'wavelite':
+        if SYSTEMTYPE.lower() == 'poc_nnigw':
+            if DEPLOYMENTTYPE == '2':
+                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '', 'NNIipaserver1': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver2': '', 'NNIipaserver2': ''}}
+            elif DEPLOYMENTTYPE == '3':
+                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '', 'NNIipaserver1': '','NNIipaserver2': ''}}
+        if SYSTEMTYPE.lower() == 'poc':
+            if DEPLOYMENTTYPE == '2':
+                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': ''},'GEO' : {'EMS': '','ipaserver2': ''}}
+            elif  DEPLOYMENTTYPE == '3':
+                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''}}
+        if SYSTEMTYPE.lower() == 'nnigw':
+            if DEPLOYMENTTYPE == '2':
+                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': ''},'GEO' : {'EMSNNI': '', 'NNIipaserver2': ''}}
+            elif DEPLOYMENTTYPE == '3':
+                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': '','NNIipaserver2': ''}}
+    else:
+        if SYSTEMTYPE.lower() == 'poc':
+            if DEPLOYMENTTYPE == '2':
+                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''},'GEO' : {'EMS': '','ipaserver3': '','ipaserver4': ''}}
+            elif DEPLOYMENTTYPE == '3':
+               ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''}}
+            elif DEPLOYMENTTYPE == '1':
+                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': ''},'SECONDARY': {'EMS': '', 'ipaserver2': ''},'GEO' : {'EMS': '','ipaserver3': '','ipaserver4': ''}}
+            elif DEPLOYMENTTYPE == '4':
+                ipmap = {'PRIMARY': {'EMS': '','ipaserver1': '','ipaserver2': ''},'SECONDARY': {'EMS': '','ipaserver3': '','ipaserver4': ''}}
+        if SYSTEMTYPE.lower() == 'nnigw':
+            if DEPLOYMENTTYPE == '2':
+                ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''},'GEO' : {'EMSNNI': '','NNIipaserver3': '','NNIipaserver4': ''}}
+            elif DEPLOYMENTTYPE == '3':
+               ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''}}
+            elif DEPLOYMENTTYPE == '1':
+                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {},'GEO' : {'EMSNNI': '','NNIipaserver3': '','NNIipaserver4': ''}}
+            elif DEPLOYMENTTYPE == '4':
+                ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {}}
+        if SYSTEMTYPE.lower() == 'poc_nnigw':
+            if DEPLOYMENTTYPE == '2':
+                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver3': '','ipaserver4': '','NNIipaserver3': '','NNIipaserver4': ''}}
+            elif DEPLOYMENTTYPE == '3':
+               ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''}}
+            elif DEPLOYMENTTYPE == '1':
+                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {'EMS': '', 'ipaserver2': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver3': '','ipaserver4': '','NNIipaserver3': '','NNIipaserver4': ''}}
+            elif DEPLOYMENTTYPE == '4':
+                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {'EMS': '', 'ipaserver3': '','ipaserver4': ''}}
+
+    return ipmap
+
+
+def CreateContainerhashNNIRHEL():
     if SETUPTYPE.lower() == 'wavelite':
         if SYSTEMTYPE.lower() == 'poc_nnigw':
             if DEPLOYMENTTYPE == '2':
@@ -344,7 +417,7 @@ def CreatePlaneIp(serviceplane):
     if COMMONPLATFLAG == 'yes':
         myhash = CreateContainerHash()
     else:
-        myhash = CreateContainerHashNNIRHEL()
+        myhash = CreateContainerhashNNIRHEL()
 
     for site in myhash:
         serviceip = config.get(site,serviceplane).split(':')
@@ -435,9 +508,9 @@ def CreateHostVarFile(servertype,tag,host,containerip,pttid,imagefile):
 
         if DEPLOYMENT_PLATFORM_TYPE == 5:
             if 'NNIipa' in servertype:
-                newservertype = hostext['NNI']+servertype[3:]
+                newservertype = Constants.hostext['NNI']+servertype[3:]
             else:
-                newservertype = hostext['POC']+servertype
+                newservertype = Constants.hostext['POC']+servertype
         else:
             newservertype = servertype
 
@@ -453,15 +526,15 @@ def CreateHostVarFile(servertype,tag,host,containerip,pttid,imagefile):
         
         
     return servertypelist
-    try:
-        with open('/Software/ProdApplicationInfra/playbooks/host_vars/'+servertype, "w") as file1:
-            for i in servertypelist:
-                file1.writelines(i+' : '+servertypelist[i]+'\n')
-    except Exception as e:
-        logger.error("Failed to create host_var file {}".format(servertype))
-        logger.error(str(e))
-        print(str(e))
-        sys.exit(1)
+    # try:
+    #     with open('/Software/ProdApplicationInfra/playbooks/host_vars/'+servertype, "w") as file1:
+    #         for i in servertypelist:
+    #             file1.writelines(i+' : '+servertypelist[i]+'\n')
+    # except Exception as e:
+    #     logger.error("Failed to create host_var file {}".format(servertype))
+    #     logger.error(str(e))
+    #     print(str(e))
+    #     sys.exit(1)
         
 
 def WriteOutFile(filename,list_array):
@@ -709,7 +782,7 @@ def update_redundant_ems_ipaddress(site, myvalues, ipmapjson, mycard, DEPLOYMENT
 def CreateAnswerFile(site,filename,pttsystemtype,installationtype,emscardname,signalingip):
     logger.info("------------------ Calling CreateAnswerFile() ------------------")
     logger.info("Creating Answer File {}".format(filename))
-    myvalues = ReadTemplate(waveliteanswertemplate)
+    myvalues = ReadTemplate(Constants.waveliteanswertemplate)
     myinterfacelist = Createinterface(site)
     aliasinterface,aliasipaddress,aliasbroadcast,aliasnetmask = '','','',''
     if pttsystemtype == '2':
@@ -842,7 +915,7 @@ def validate_license_file():
 
 def validate_required_idap_cards(allcards: List[str], cluster: str, idap_light_flag: int):
     try:
-        for idapcard in IDAP_LIGHT_CARDS[idap_light_flag]:
+        for idapcard in Constants.IDAP_LIGHT_CARDS[idap_light_flag]:
             if idapcard not in allcards:
               raise Exception(f'Card {idapcard} is not available in {cluster}. Required for INSTALL_IDAP_LIGHT = {idap_light_flag}.')
 
@@ -1081,7 +1154,7 @@ def Updaterhelidminstance(Type):
                     cardname=card.lstrip('NNI')
 
                 if DEPLOYMENT_PLATFORM_TYPE == 5:
-                    host = hostext[Type]+cardname+"."+INTERNAL_HOST_DOMAIN
+                    host = Constants.hostext[Type]+cardname+"."+INTERNAL_HOST_DOMAIN
                 else:
                     host = cardname+"."+INTERNAL_HOST_DOMAIN
                 rhelidmjson={"IP":ipmapjson[server][card],"Host":host, "IS_SERVER_NODE":isserver}
