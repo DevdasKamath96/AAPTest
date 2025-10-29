@@ -1805,11 +1805,7 @@ if __name__ == "__main__":
     logger = setup_logging()
     logger.info("Starting Script Execution")
     
-    ems_inventory = CreateInventory(
-        aap_url=Constants.AAP_API_URL,
-        auth_token=Constants.AAP_PASSWORD,
-        organization_name=Constants.AAP_ORG_NAME,
-    )
+    ems_inventory = CreateInventory(Constants.AAP_URL, Constants.AAP_USERNAME, Constants.AAP_PASSWORD, Constants.ORG_NAME, logger)
     
     CreateEMSInventory(ems_inventory, logger)
     

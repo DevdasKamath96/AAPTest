@@ -1,19 +1,33 @@
 import requests
 
 class BaseCreateInventory:
-    def __init__(self, aap_url: str, auth_token: str):
+    def __init__(self, aap_url: str, aap_user: str, aap_password: str):
         self.aap_url = aap_url
-        self.auth_token = auth_token
-        self.headers = {"Authorization": f"Bearer {auth_token}",
-                        "Content-Type": "application/json"}
+        self.aap_user = aap_user
+        self.aap_password = aap_password
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.get_auth_token(aap_user, aap_password)}"
+        }
 
 class CreateInventory(BaseCreateInventory):
-    
-    def __init__(self, aap_url: str, auth_token: str, organization_name: str, logger):
-        super().__init__(aap_url, auth_token)
+
+    def __init__(self, aap_url: str, aap_user: str, aap_password: str, organization_name: str, logger):
+        super().__init__(aap_url, aap_user, aap_password)
         self.logger = logger
         self.organization_name = organization_name
         self.organization_id = self.get_organization_id(organization_name)
+
+
+    def get_auth_token(self, username, password):
+        url = f"{self.aap_url}/tokens/"
+        self.logger.info(f"Fetching AAP token for user '{username}'")
+        resp = requests.post(url, auth=(username, password))
+        self.logger.info(f"Token fetch response: {resp.status_code} {resp.text}")
+        resp.raise_for_status()
+        token = resp.json()["token"]
+        self.logger.info(f"Token received: {token}")
+        return token
 
     def get_organization_id(self, organization_name: str) -> int:
         self.logger.info(f"Getting organization ID for: {organization_name}")
