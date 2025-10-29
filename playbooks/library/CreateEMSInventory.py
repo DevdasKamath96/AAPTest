@@ -1425,114 +1425,114 @@ def write_allemsvm_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, logger):
             sys.exit(1)
             
 
-    def write_password_hosts_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM, 
-                                 Emsiplist, Nniiplist, SYSTEMTYPE, POCPriems, GWPriems, POCPRIEMSVM, 
-                                 GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount, config, 
-                                 DEPLOYMENTTYPE, F5_CORES, SETUPTYPE, AUTOMATE_DOCKER_PULL, logger):
-        """
-        Write password hosts file with VM and configuration information.
-        
-        Args:
-            POCVMEMSLIST: List of POC EMS VM IPs
-            ALLPOCVM: List of all POC VM IPs
-            NNIVMEMSLIST: List of NNI EMS VM IPs
-            ALLNNIVM: List of all NNI VM IPs
-            ALLPOCBM: List of all POC bare metal IPs
-            ALLNNIBM: List of all NNI bare metal IPs
-            Emsiplist: List of EMS IPs
-            Nniiplist: List of NNI IPs
-            SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
-            POCPriems: Primary POC EMS IP
-            GWPriems: Primary gateway EMS IP
-            POCPRIEMSVM: List of POC primary EMS VM IPs
-            GWPRIEMSVM: List of gateway primary EMS VM IPs
-            XDMVMIP: List of XDM VM IPs
-            SIGVMIP: List of SIG VM IPs
-            POCCardCount: Count of POC cards
-            GWCardCount: Count of gateway cards
-            config: Configuration parser object
-            DEPLOYMENTTYPE: Deployment type
-            F5_CORES: F5 cores configuration
-            SETUPTYPE: Setup type
-            AUTOMATE_DOCKER_PULL: Docker pull automation flag
-            logger: Logger instance for error logging
-        """
-        try:
-            with open(Constants.Psswdhosts, "w") as phfile:
-                if len(POCVMEMSLIST) != 0:
-                    phfile.write('[POCEMSVMS]'+'\n')
-                    for emsvmip in POCVMEMSLIST:
-                        phfile.write(emsvmip+'\n')
-                    phfile.write('\n')
+def write_password_hosts_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM, 
+                                Emsiplist, Nniiplist, SYSTEMTYPE, POCPriems, GWPriems, POCPRIEMSVM, 
+                                GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount, config, 
+                                DEPLOYMENTTYPE, F5_CORES, SETUPTYPE, AUTOMATE_DOCKER_PULL, logger):
+    """
+    Write password hosts file with VM and configuration information.
+    
+    Args:
+        POCVMEMSLIST: List of POC EMS VM IPs
+        ALLPOCVM: List of all POC VM IPs
+        NNIVMEMSLIST: List of NNI EMS VM IPs
+        ALLNNIVM: List of all NNI VM IPs
+        ALLPOCBM: List of all POC bare metal IPs
+        ALLNNIBM: List of all NNI bare metal IPs
+        Emsiplist: List of EMS IPs
+        Nniiplist: List of NNI IPs
+        SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
+        POCPriems: Primary POC EMS IP
+        GWPriems: Primary gateway EMS IP
+        POCPRIEMSVM: List of POC primary EMS VM IPs
+        GWPRIEMSVM: List of gateway primary EMS VM IPs
+        XDMVMIP: List of XDM VM IPs
+        SIGVMIP: List of SIG VM IPs
+        POCCardCount: Count of POC cards
+        GWCardCount: Count of gateway cards
+        config: Configuration parser object
+        DEPLOYMENTTYPE: Deployment type
+        F5_CORES: F5 cores configuration
+        SETUPTYPE: Setup type
+        AUTOMATE_DOCKER_PULL: Docker pull automation flag
+        logger: Logger instance for error logging
+    """
+    try:
+        with open(Constants.Psswdhosts, "w") as phfile:
+            if len(POCVMEMSLIST) != 0:
+                phfile.write('[POCEMSVMS]'+'\n')
+                for emsvmip in POCVMEMSLIST:
+                    phfile.write(emsvmip+'\n')
+                phfile.write('\n')
 
-                if len(ALLPOCVM) != 0:
-                    phfile.write('[ALLPOCVMS]'+'\n')
-                    for pocvmip in ALLPOCVM:
-                        phfile.write(pocvmip+'\n')
-                    phfile.write('\n')
+            if len(ALLPOCVM) != 0:
+                phfile.write('[ALLPOCVMS]'+'\n')
+                for pocvmip in ALLPOCVM:
+                    phfile.write(pocvmip+'\n')
+                phfile.write('\n')
 
-                if len(NNIVMEMSLIST) != 0:
-                    phfile.write('[NNIGWEMSVMS]'+'\n')
-                    for nniemsvmip in NNIVMEMSLIST:
-                        phfile.write(nniemsvmip+'\n')
-                    phfile.write('\n')
+            if len(NNIVMEMSLIST) != 0:
+                phfile.write('[NNIGWEMSVMS]'+'\n')
+                for nniemsvmip in NNIVMEMSLIST:
+                    phfile.write(nniemsvmip+'\n')
+                phfile.write('\n')
 
-                if len(ALLNNIVM) != 0:
-                    phfile.write('[ALLNNIGWVMS]'+'\n')
-                    for nnivmip in ALLNNIVM:
-                        phfile.write(nnivmip+'\n')
+            if len(ALLNNIVM) != 0:
+                phfile.write('[ALLNNIGWVMS]'+'\n')
+                for nnivmip in ALLNNIVM:
+                    phfile.write(nnivmip+'\n')
 
-                if 'poc' in SYSTEMTYPE.lower():
-                    POCVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCVM])
-                    POCBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCBM])
-                    POCEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Emsiplist])
+            if 'poc' in SYSTEMTYPE.lower():
+                POCVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCVM])
+                POCBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCBM])
+                POCEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Emsiplist])
+                phfile.write('\n'+'[all:vars]'+'\n')
+                phfile.write('POCVMIPS='+'['+POCVM_ips+']'+'\n')
+                phfile.write('POCBMIPS='+'['+POCBM_ips+']'+'\n')
+                phfile.write('POCEMSIPS='+'['+POCEMS_ips+']'+'\n')
+                phfile.write('POCPRIEMSIP='+POCPriems+'\n')
+                phfile.write('POCPRIEMSVM='+POCPRIEMSVM[0]+'\n')
+                phfile.write('XDMVMIP='+XDMVMIP[0]+'\n')
+                phfile.write('POCCardCount='+str(POCCardCount)+'\n')
+                phfile.write('POC_LICENSE_PATH='+config.get('GLOBAL', 'POC_LICENSE_PATH')+'\n')
+            if 'nnigw' in SYSTEMTYPE.lower():
+                NNIVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIVM])
+                NNIBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIBM])
+                NNIEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Nniiplist])
+                if SYSTEMTYPE.lower() != 'poc_nnigw':
                     phfile.write('\n'+'[all:vars]'+'\n')
-                    phfile.write('POCVMIPS='+'['+POCVM_ips+']'+'\n')
-                    phfile.write('POCBMIPS='+'['+POCBM_ips+']'+'\n')
-                    phfile.write('POCEMSIPS='+'['+POCEMS_ips+']'+'\n')
-                    phfile.write('POCPRIEMSIP='+POCPriems+'\n')
-                    phfile.write('POCPRIEMSVM='+POCPRIEMSVM[0]+'\n')
-                    phfile.write('XDMVMIP='+XDMVMIP[0]+'\n')
-                    phfile.write('POCCardCount='+str(POCCardCount)+'\n')
-                    phfile.write('POC_LICENSE_PATH='+config.get('GLOBAL', 'POC_LICENSE_PATH')+'\n')
-                if 'nnigw' in SYSTEMTYPE.lower():
-                    NNIVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIVM])
-                    NNIBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIBM])
-                    NNIEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Nniiplist])
-                    if SYSTEMTYPE.lower() != 'poc_nnigw':
-                        phfile.write('\n'+'[all:vars]'+'\n')
-                    phfile.write('GWVMIPS='+'['+NNIVM_ips+']'+'\n')
-                    phfile.write('GWBMIPS='+'['+NNIBM_ips+']'+'\n')
-                    phfile.write('GWEMSIPS='+'['+NNIEMS_ips+']'+'\n')
-                    phfile.write('GWPRIEMSIP='+GWPriems+'\n')
-                    phfile.write('GWPRIEMSVM='+GWPRIEMSVM[0]+'\n')
-                    phfile.write('SIGVMIP='+SIGVMIP[0]+'\n')
-                    phfile.write('GWCardCount='+str(GWCardCount)+'\n')
-                    phfile.write('NNI_LICENSE_PATH='+config.get('GLOBAL', 'NNI_LICENSE_PATH')+'\n')
+                phfile.write('GWVMIPS='+'['+NNIVM_ips+']'+'\n')
+                phfile.write('GWBMIPS='+'['+NNIBM_ips+']'+'\n')
+                phfile.write('GWEMSIPS='+'['+NNIEMS_ips+']'+'\n')
+                phfile.write('GWPRIEMSIP='+GWPriems+'\n')
+                phfile.write('GWPRIEMSVM='+GWPRIEMSVM[0]+'\n')
+                phfile.write('SIGVMIP='+SIGVMIP[0]+'\n')
+                phfile.write('GWCardCount='+str(GWCardCount)+'\n')
+                phfile.write('NNI_LICENSE_PATH='+config.get('GLOBAL', 'NNI_LICENSE_PATH')+'\n')
 
-                #phfile.write('UPGRADE_QCOW2='+config.get('GLOBAL', 'UPGRADE_QCOW2_PATH')+'\n')
-                phfile.write('SYSTEM_TYPE='+SYSTEMTYPE+'\n')
-                phfile.write('DEPLOYMENTTYPE='+DEPLOYMENTTYPE+'\n')
-                phfile.write('F5_CORES=' + F5_CORES + '\n')
-                phfile.write('SETUP_TYPE='+SETUPTYPE.lower()+'\n')
-                if SETUPTYPE.lower() == 'wavelite':
-                    for site in ['PRIMARY','GEO']:
-                        WAVELITE_ROUTE=config.get(site,'WAVELITE_ROUTE')
-                        phfile.write('WAVELITE_ROUTE_'+site+'='+WAVELITE_ROUTE+'\n')
-                phfile.write('AUTOMATE_DOCKER_PULL='+AUTOMATE_DOCKER_PULL+'\n')
-                if AUTOMATE_DOCKER_PULL.lower()=='yes':
-                    phfile.write('DOCKER_USERNAME='+config.get('GLOBAL', 'DOCKER_USERNAME')+'\n')
-                    phfile.write('DOCKER_PASSWORD='+config.get('GLOBAL', 'DOCKER_PASSWORD').strip('"')+'\n')
-                    phfile.write('DOCKER_REGISTRY='+config.get('GLOBAL', 'DOCKER_REGISTRY')+'\n')
-                    phfile.write('COSIGN_PUB_KEY_PATH=/Software/'+config.get('GLOBAL', 'COSIGN_PUB_KEY')+'\n')
-                phfile.write('WILDCARDFQDN='+config.get('GLOBAL', 'WILDCARDFQDN')+'\n')
-                phfile.write('ansible_ssh_user=autoinstall'+'\n')
-                phfile.write('ansible_ssh_pass=kodiak'+'\n')
-                phfile.write('ansible_connection=ssh'+'\n')
+            #phfile.write('UPGRADE_QCOW2='+config.get('GLOBAL', 'UPGRADE_QCOW2_PATH')+'\n')
+            phfile.write('SYSTEM_TYPE='+SYSTEMTYPE+'\n')
+            phfile.write('DEPLOYMENTTYPE='+DEPLOYMENTTYPE+'\n')
+            phfile.write('F5_CORES=' + F5_CORES + '\n')
+            phfile.write('SETUP_TYPE='+SETUPTYPE.lower()+'\n')
+            if SETUPTYPE.lower() == 'wavelite':
+                for site in ['PRIMARY','GEO']:
+                    WAVELITE_ROUTE=config.get(site,'WAVELITE_ROUTE')
+                    phfile.write('WAVELITE_ROUTE_'+site+'='+WAVELITE_ROUTE+'\n')
+            phfile.write('AUTOMATE_DOCKER_PULL='+AUTOMATE_DOCKER_PULL+'\n')
+            if AUTOMATE_DOCKER_PULL.lower()=='yes':
+                phfile.write('DOCKER_USERNAME='+config.get('GLOBAL', 'DOCKER_USERNAME')+'\n')
+                phfile.write('DOCKER_PASSWORD='+config.get('GLOBAL', 'DOCKER_PASSWORD').strip('"')+'\n')
+                phfile.write('DOCKER_REGISTRY='+config.get('GLOBAL', 'DOCKER_REGISTRY')+'\n')
+                phfile.write('COSIGN_PUB_KEY_PATH=/Software/'+config.get('GLOBAL', 'COSIGN_PUB_KEY')+'\n')
+            phfile.write('WILDCARDFQDN='+config.get('GLOBAL', 'WILDCARDFQDN')+'\n')
+            phfile.write('ansible_ssh_user=autoinstall'+'\n')
+            phfile.write('ansible_ssh_pass=kodiak'+'\n')
+            phfile.write('ansible_connection=ssh'+'\n')
 
-        except Exception as e:
-            logger.error(str(e))
-            sys.exit(1)
+    except Exception as e:
+        logger.error(str(e))
+        sys.exit(1)
             
 
 def create_rhelidm_yaml_files(SYSTEMTYPE, rhelidmjson1, IPASERVERCHASSIS, NNIIPASERVERCHASSIS, 
@@ -1842,8 +1842,6 @@ if __name__ == "__main__":
 
     #TODO: check if this is needed or used anywhere
     write_allemsvm_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, logger)
-    
-
 
     # Replace the selected code with this function call:
     create_rhelidm_yaml_files(SYSTEMTYPE, rhelidmjson1, IPASERVERCHASSIS, NNIIPASERVERCHASSIS,
