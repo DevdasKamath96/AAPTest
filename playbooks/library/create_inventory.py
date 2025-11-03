@@ -1,21 +1,22 @@
 import requests
+import yaml
 
 class BaseCreateInventory:
     def __init__(self, aap_url: str, aap_user: str, aap_password: str):
         self.aap_url = aap_url
         self.aap_user = aap_user
         self.aap_password = aap_password
-        self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.get_auth_token(aap_user, aap_password)}"
-        }
 
 class CreateInventory(BaseCreateInventory):
 
     def __init__(self, aap_url: str, aap_user: str, aap_password: str, organization_name: str, logger):
         super().__init__(aap_url, aap_user, aap_password)
-        self.logger = logger
         self.organization_name = organization_name
+        self.logger = logger
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.get_auth_token(aap_user, aap_password)}"
+        }
         self.organization_id = self.get_organization_id(organization_name)
 
 
@@ -35,7 +36,7 @@ class CreateInventory(BaseCreateInventory):
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
 
-        organizations = response.json().get("organizations", [])
+        organizations = response.json().get("results", [])
         if organizations:
             org_id = organizations[0]["id"]
             self.logger.info(f"Found organization ID: {org_id}")
@@ -44,13 +45,18 @@ class CreateInventory(BaseCreateInventory):
         raise ValueError(f"Organization '{organization_name}' not found.")
 
     def create_inventory(self, name: str, variables: dict) -> str:
-        self.logger.info(f"Creating inventory: {name}")
-        url = f"{self.aap_url}/organizations/{self.organization_id}/inventories/"
-        payload = {"name": name, "variables": variables}
-        response = requests.post(url, headers=self.headers, json=payload)
-        response.raise_for_status()
-        inventory_id = response.json().get("id", "")
-        self.logger.info(f"Created inventory {name} with ID: {inventory_id}")
+        variables_str = yaml.dump(variables) if variables else ""
+        payload = {
+            "name": name,
+            "organization": self.organization_id,
+            "variables": variables_str
+        }
+        self.logger.info(f"Creating inventory with payload: {payload}")
+        resp = requests.post(f"{self.aap_url}/inventories/", json=payload, headers=self.headers)
+        self.logger.info(f"Inventory creation response: {resp.status_code} {resp.text}")
+        resp.raise_for_status()
+        inventory_id = resp.json()["id"]
+        self.logger.info(f"Inventory created with ID: {inventory_id}")
         return inventory_id
     
     def check_inventory_exists(self, name: str) -> bool:
@@ -58,7 +64,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/inventories/?name={name}&organization_id={self.organization_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        inventory = response.json().get("inventories", [])
+        inventory = response.json().get("results", [])
         exists = len(inventory) > 0
         self.logger.info(f"Inventory {name} exists: {exists}")
         return exists
@@ -68,7 +74,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/inventories/?name={name}&organization_id={self.organization_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        inventories = response.json().get("inventories", [])
+        inventories = response.json().get("results", [])
         if inventories:
             inventory_id = inventories[0]["id"]
             self.logger.info(f"Found inventory ID: {inventory_id}")
@@ -99,7 +105,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/hosts/?name={host_name}&inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        hosts = response.json().get("hosts", [])
+        hosts = response.json().get("results", [])
         exists = len(hosts) > 0
         self.logger.info(f"Host {host_name} exists in {inventory_name}: {exists}")
         return exists
@@ -121,7 +127,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/hosts/?name={host_name}&inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        hosts = response.json().get("hosts", [])
+        hosts = response.json().get("results", [])
         if hosts:
             host_id = hosts[0]["id"]
             self.logger.info(f"Found host ID: {host_id}")
@@ -143,7 +149,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/hosts/?inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        hosts = response.json().get("hosts", [])
+        hosts = response.json().get("results", [])
         host_names = [host["name"] for host in hosts]
         self.logger.info(f"Found {len(host_names)} hosts in inventory {inventory_name}")
         return host_names
@@ -154,7 +160,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/hosts/?name={host_name}&inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        hosts = response.json().get("hosts", [])
+        hosts = response.json().get("results", [])
         if hosts:
             variables = hosts[0].get("variables", {})
             self.logger.info(f"Retrieved variables for host: {host_name}")
@@ -163,19 +169,20 @@ class CreateInventory(BaseCreateInventory):
         raise ValueError(f"Host '{host_name}' not found in inventory '{inventory_name}'.")
     
     def update_host_vars(self, inventory_name: str, host_name: str, variables: dict) -> None:
+        variables_str = yaml.dump(variables) if variables else ""
         self.logger.info(f"Updating variables for host: {host_name} in inventory: {inventory_name}")
         inventory_id = self.get_inventory_id(inventory_name)
         url = f"{self.aap_url}/hosts/?name={host_name}&inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        hosts = response.json().get("hosts", [])
+        hosts = response.json().get("results", [])
         if not hosts:
             self.logger.error(f"Host '{host_name}' not found in inventory '{inventory_name}'")
             raise ValueError(f"Host '{host_name}' not found in inventory '{inventory_name}'.")
         
         host_id = hosts[0]["id"]
         url = f"{self.aap_url}/hosts/{host_id}/"
-        payload = {"variables": variables}
+        payload = {"variables": variables_str}
         response = requests.patch(url, headers=self.headers, json=payload)
         response.raise_for_status()
         self.logger.info(f"Updated variables for host: {host_name}")
@@ -197,7 +204,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/groups/?inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        groups = response.json().get("groups", [])
+        groups = response.json().get("results", [])
         group_names = [group["name"] for group in groups]
         self.logger.info(f"Found {len(group_names)} groups in inventory {inventory_name}")
         return group_names
@@ -208,7 +215,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/groups/?name={group_name}&inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        groups = response.json().get("groups", [])
+        groups = response.json().get("results", [])
         if groups:
             group_id = groups[0]["id"]
             self.logger.info(f"Found group ID: {group_id}")
@@ -222,7 +229,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/groups/?name={group_name}&inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        groups = response.json().get("groups", [])
+        groups = response.json().get("results", [])
         if groups:
             variables = groups[0].get("variables", {})
             self.logger.info(f"Retrieved variables for group: {group_name}")
@@ -236,7 +243,7 @@ class CreateInventory(BaseCreateInventory):
         url = f"{self.aap_url}/groups/?name={group_name}&inventory_id={inventory_id}"
         response = requests.get(url, headers=self.headers)
         response.raise_for_status()
-        groups = response.json().get("groups", [])
+        groups = response.json().get("results", [])
         if not groups:
             self.logger.error(f"Group '{group_name}' not found in inventory '{inventory_name}'")
             raise ValueError(f"Group '{group_name}' not found in inventory '{inventory_name}'.")
