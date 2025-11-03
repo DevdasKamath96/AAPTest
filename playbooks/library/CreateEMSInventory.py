@@ -6,6 +6,7 @@ from collections import OrderedDict
 from pwd import getpwuid, getpwnam
 from grp import getgrgid, getgrnam
 import logging
+import time
 from typing import List
 import yaml
 import ipaddress as newipaddress
@@ -36,9 +37,9 @@ MyDumper.add_representer(QuotedString, quoted_scalar)
 class Constants:
     AAP_API_URL = "https://controller.example.org/api/v2"
     AAP_USERNAME = "admin"
-    AAP_PASSWORD = "password"
+    AAP_PASSWORD = "redhat"
     ORG_NAME = "Default"
-    EMSInvNAME = "EMSLaunch"
+    EMSInvNAME = "EMSLaunchTest"
     POCGROUPNAME = "poc"
     NNIGROUPNAME = "nni"
     SSH_USER = "autoinstall"
@@ -67,7 +68,7 @@ class Constants:
 
     LICENSE_FILE_USER = "autoinstall"
     LICENSE_FILE_GROUP = "kodiakgroup"
-    logfile = '/DGlogs/CreateEMSInventory.log'
+    logfile = 'CreateEMSInventory.log'
     required_files = [Usertemplatefile, waveliteanswertemplate, pocdatfile, nnidatfile, MasterConfFile]
 
 
@@ -79,6 +80,7 @@ def check_required_files(systemtype, logger):
                 logger.error(f"User Input File ::{file} doesn't exist. Please check and retry")
                 sys.exit(1)
             continue
+        
                 
         if file == Constants.nnidatfile and 'nnigw' in systemtype.lower():
             if not os.path.isfile(file):
@@ -86,7 +88,7 @@ def check_required_files(systemtype, logger):
                 sys.exit(1)
             continue
         
-        if not os.path.isfile(file):
+        if not os.path.isfile(file) and file not in [Constants.pocdatfile, Constants.nnidatfile]:
             logger.error(f"User Input File ::{file} doesn't exist. Please check and retry")
             sys.exit(1)
             
@@ -215,7 +217,7 @@ def ReadImageDatfile(datfile):
     return MyImagelist
 
 
-def CreateInventoryGroups(ems_inventory: CreateInventory, myinventoryhash, logger):
+def CreateInventoryGroups(ems_inventory: CreateInventory, system_type, logger):
     logger.info("----------------- Calling CreateInventoryGroups() ------------------")
     # mydict = {}
     # i = 1
@@ -274,10 +276,10 @@ def CreateInventoryGroups(ems_inventory: CreateInventory, myinventoryhash, logge
 
     #     logger.info("Successfuly created Inventory file :;{}".format(Constants.Inventoryfile))\
     try:
-        if 'poc' in SYSTEMTYPE.lower():
+        if 'poc' in system_type.lower():
             ems_inventory.create_group(Constants.EMSInvNAME, Constants.POCGROUPNAME)
 
-        if 'nnigw' in SYSTEMTYPE.lower():
+        if 'nnigw' in system_type.lower():
             ems_inventory.create_group(Constants.EMSInvNAME, Constants.NNIGROUPNAME)
         
     except Exception as e:
@@ -517,7 +519,6 @@ def CreateHostVarFile(servertype,tag,host,containerip,pttid,imagefile):
         newhost=newservertype.lstrip('NNI')
         servertypelist = { 'INIFILE' : '/Software/ProdApplicationInfra/conf/'+servertype+'.ini' ,'CONTAINERNAME' : 'PROJ-'+newhost+'.'+INTERNAL_HOST_DOMAIN+'-'+pttid+'-'+tag,'ansible_ssh_host' : host ,'CONTAINERIP' : containerip,'IS_MASTER' : IS_MASTER,'IMAGEFILE': imagefile,'DOCKERREGISTRY': docker_registry }
         
-         
         
         logger.info("Content of Host_var file for {} is {}".format(servertype,servertypelist))
     else:
@@ -553,48 +554,56 @@ def WriteOutFile(filename,list_array):
         
 
 def convert_listarray_to_json(list_array, logger):
-        """
-        Convert a list array configuration to JSON format.
+    """
+    Convert a list array configuration to JSON format.
+    
+    Args:
+        list_array: List containing configuration key-value pairs
+        logger: Logger instance for logging
         
-        Args:
-            list_array: List containing configuration key-value pairs
-            logger: Logger instance for logging
-            
-        Returns:
-            dict: JSON representation of the configuration
-        """
-        logger.info("Converting list array to JSON format")
-        
-        json_data = {}
-        
-        try:
-            for item in list_array:
-                if '=' in item:
-                    # Split only on the first '=' to handle values that contain '='
-                    key, value = item.split('=', 1)
-                    
-                    # Handle multi-line values (interface, ipaddr, route)
+    Returns:
+        dict: JSON representation of the configuration
+    """
+    logger.info("Converting list array to JSON format")
+    
+    special_keys = ['interface', 'ipaddr', 'route']
+    
+    json_data = {}
+    
+    try:
+        for item in list_array:
+            if '=' in item:
+                # Split only on the first '=' to handle values that contain '='
+                key, value = item.split('=', 1)
+                
+                if key in special_keys:
+                    # Handle multi-line values by splitting on '\n' and extracting values
                     if '\n' in value:
-                        # Split multi-line values into a list
-                        json_data[key] = value.split('\n')
+                        value_list = []
+                        for line in value.split('\n'):
+                            if line.strip():  # Skip empty lines
+                                value_list.append(line.strip())
+                        json_data[key] = value_list
                     else:
-                        # Try to parse JSON strings
-                        if value.startswith('[') and value.endswith(']'):
-                            try:
-                                json_data[key] = json.loads(value)
-                            except json.JSONDecodeError:
-                                json_data[key] = value
-                        else:
+                        json_data[key] = [value]
+                else:
+                    # Try to parse JSON strings
+                    if value.startswith('[') and value.endswith(']'):
+                        try:
+                            json_data[key] = json.loads(value)
+                        except json.JSONDecodeError:
                             json_data[key] = value
-                            
-            container_ini_vars = {'INI_FILE_DATA': json_data}
+                    else:
+                        json_data[key] = value
+                        
+        container_ini_vars = {'INI_FILE_DATA': json_data}
+    
+        logger.info(f"Successfully converted list array to JSON: {json_data}")
+        return container_ini_vars
         
-            logger.info(f"Successfully converted list array to JSON: {json_data}")
-            return container_ini_vars
-            
-        except Exception as e:
-            logger.error(f"Failed to convert list array to JSON: {str(e)}")
-            return {}
+    except Exception as e:
+        logger.error(f"Failed to convert list array to JSON: {str(e)}")
+        return {}
 
 ################ Creating Container INI File ##############
 def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
@@ -708,7 +717,7 @@ def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
         POCVMEMSLIST.append(config.get(site,CHASSIS_HOSTNAME))
         POCPRIEMSVM.append(config.get('PRIMARY',CHASSIS_HOSTNAME))
         if inilist['HOSTIP'] not in emshosts and AUTOMATE_DOCKER_PULL == 'yes':
-            imagefile = f"/Software/ProdApplicationInfra/conf/"+filename+".dat"
+            imagefile = f"{Constants.Relative_path}"+filename+".dat"
             with open(imagefile, "w") as f:
                 f.write(f"EMS:0-{image}\n")
             emshosts.append(inilist['HOSTIP'])
@@ -718,14 +727,14 @@ def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
         NNIVMEMSLIST.append(config.get(site,CHASSIS_HOSTNAME))
         GWPRIEMSVM.append(config.get('PRIMARY',CHASSIS_HOSTNAME))
         if AUTOMATE_DOCKER_PULL == 'yes':
-            imagefile = f"/Software/ProdApplicationInfra/conf/"+filename+".dat"
+            imagefile = f"{Constants.Relative_path}"+filename+".dat"
             with open(imagefile, "w") as f:
                 f.write(f"EMS:0-{image}\n")
         else:
             imagefile = "empty"
     if 'RHELIDM' in Servertype:
         if inilist['HOSTIP'] not in ipahosts and AUTOMATE_DOCKER_PULL == 'yes':
-            imagefile = f"/Software/ProdApplicationInfra/conf/"+filename+".dat"
+            imagefile = f"{Constants.Relative_path}"+filename+".dat"
             with open(imagefile, "w") as f:
                 f.write(f"RHELIDM:127-{image}\n")
             ipahosts.append(inilist['HOSTIP'])
@@ -738,7 +747,7 @@ def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
 
     if SETUPTYPE.lower() == 'wavelite':
         list_array.remove('route=##route##')
-    WriteOutFile('/Software/ProdApplicationInfra/conf/'+filename+'.ini',list_array)
+    WriteOutFile(f'{Constants.Relative_path}'+filename+'.ini',list_array)
     
 
     # Convert the list array to JSON format
@@ -864,10 +873,8 @@ def CreateAnswerFile(site,filename,pttsystemtype,installationtype,emscardname,si
         if ':' in item:
             # Split only on the first ':' to handle values that contain ':'
             key, value = item.split(':', 1)
-            answer_vars.update(f"{key}:{value}")
-        else:
-            answer_vars.update(item)
-
+            answer_vars.update({key: value})
+    answer_vars = {'ANSWER_FILE_DATA': answer_vars}
     return answer_vars
     
     # WriteOutFile('/Software/ProdApplicationInfra/ans/'+filename+'.ans',myvalues)
@@ -990,7 +997,7 @@ def VerifyMasterInputFile():
 
     if not validate_license_file():
         logger.error("License file Path mentioned in Global section of master input file is invalid. Please check and update.")
-        sys.exit(1)
+        # sys.exit(1)
 
     logger.info("License file Path is validated Successfully")
     if 'COMMON_PLATFORM_FLAG' not in dictionary['GLOBAL'].keys() or dictionary['GLOBAL']['COMMON_PLATFORM_FLAG'] == '':
@@ -1357,7 +1364,7 @@ def write_ip_mapping_to_file(ipmapjson, logger):
         """
         try:
             logger.info("Populating Signalling Cards Ip's into text file :: alliplist.txt")
-            with open('/DG/activeRelease/GenerateConfFiles/alliplist.txt', "w") as myfile:
+            with open(f'{Constants.Relative_path}alliplist.txt', "w") as myfile:
                 for line in ipmapjson:
                     myfile.write('['+line+']'+'\n')
                     for mylist in ipmapjson[line]:
@@ -1659,7 +1666,7 @@ def create_rhelidm_yaml_files(SYSTEMTYPE, rhelidmjson1, IPASERVERCHASSIS, NNIIPA
                     mydata["containers"].append(val)
                     myrhelidmdata["rhelidm_servers"].append(mydata)
 
-            with open('/DG/activeRelease/POCplaybook/roles/cms/vars/rhelidm.yml', 'w') as f:
+            with open(f'{Constants.Relative_path}rhelidm.yml', 'w') as f:
                 yaml.preserve_quotes = True
                 yaml.dump(myrhelidmdata, f, Dumper=MyDumper)
 
@@ -1710,7 +1717,7 @@ def write_ip_configuration_files(mylistmap, logger):
         """
         try:
             logger.info("Writing IP configuration to ip.ini file")
-            with open('/DG/activeRelease/GenerateConfFiles/ip.ini', 'w') as myfile:
+            with open(f'{Constants.Relative_path}ip.ini', 'w') as myfile:
                 for mycard in mylistmap:
                     myfile.write('['+mycard+']'+'\n')
                     for card in mylistmap[mycard]:
@@ -1722,7 +1729,7 @@ def write_ip_configuration_files(mylistmap, logger):
                         myfile.write('\n')
 
             logger.info("Writing IP configuration to nninewip.ini file")
-            with open('/DG/activeRelease/GenerateConfFiles/nninewip.ini', 'w') as myfile:
+            with open(f'{Constants.Relative_path}nninewip.ini', 'w') as myfile:
                 for mycard in mylistmap:
                     myfile.write('['+mycard+']'+'\n')
                     for card in mylistmap[mycard]:
@@ -1752,28 +1759,21 @@ def update_rhelidm_instance_info(rhel_idm_file, rhelidminstance):
             file_object.write('RHELIDM_INSTANCE_INFO###'+json.dumps(rhelidminstance,separators=(',', ':')))
             file_object.write('\n')
             
-def Update_inventory_variables(ems_inventory: CreateInventory, inventory_name: str, logger: logging.Logger):
-    '''
-    This function updates inventory variables for EMS inventory in AAP
-    '''
-    logger.info(f"Updating inventory variables for EMS Inventory: {inventory_name}")
+# def Update_inventory_variables(ems_inventory: CreateInventory, inventory_name: str, logger: logging.Logger):
+#     '''
+#     This function updates inventory variables for EMS inventory in AAP
+#     '''
+#     logger.info(f"Updating inventory variables for EMS Inventory: {inventory_name}")
     
-    try:
-        inventory_vars = {
-            'group_poc': Constants.POCGROUPNAME,
-            'group_nn': Constants.NNIGROUPNAME,
-            'ansible_ssh_user': Constants.SSH_USER,
-            'ansible_ssh_pass': Constants.SSH_PASS,
-            'CONFIG_SCRIPT_PATH': Constants.CONFIG_SCRIPT_PATH,
-            'CONFIG_PATH': Constants.CONFIG_PATH
-        }
+#     try:
         
-        ems_inventory.update_inventory_variables(inventory_name, inventory_vars)
-        logger.info("Inventory variables updated successfully.")
         
-    except Exception as e:
-        logger.error(f"Failed to update inventory variables: {str(e)}")
-        sys.exit(1)
+#         ems_inventory.update_inventory_vars(inventory_name, inventory_vars)
+#         logger.info("Inventory variables updated successfully.")
+        
+#     except Exception as e:
+#         logger.error(f"Failed to update inventory variables: {str(e)}")
+#         sys.exit(1)
 
 
 def CreateEMSInventory(ems_inventory: CreateInventory, logger: logging.Logger):
@@ -1788,12 +1788,22 @@ def CreateEMSInventory(ems_inventory: CreateInventory, logger: logging.Logger):
         if ems_inventory.check_inventory_exists(Constants.EMSInvNAME):
             logger.info(f"EMS Inventory '{Constants.EMSInvNAME}' already exists. Deleting existing inventory.")
             ems_inventory.delete_inventory(Constants.EMSInvNAME)
+            time.sleep(2)  # Wait for 2 seconds to ensure deletion is processed
             logger.info(f"Existing EMS Inventory '{Constants.EMSInvNAME}' deleted successfully.")
+            
+        inventory_vars = {
+            'group_poc': Constants.POCGROUPNAME,
+            'group_nn': Constants.NNIGROUPNAME,
+            'ansible_ssh_user': Constants.SSH_USER,
+            'ansible_ssh_pass': Constants.SSH_PASS,
+            'CONFIG_SCRIPT_PATH': Constants.CONFIG_SCRIPT_PATH,
+            'CONFIG_PATH': Constants.CONFIG_PATH
+        }
         
-        ems_inventory.create_inventory(Constants.EMSInvNAME)
+        ems_inventory.create_inventory(Constants.EMSInvNAME, inventory_vars)
         logger.info("EMS Inventory created successfully.")
         
-        Update_inventory_variables(ems_inventory, Constants.EMSInvNAME, logger)
+        # Update_inventory_variables(ems_inventory, Constants.EMSInvNAME, logger)
     except Exception as e:
         logger.error(f"Failed to create EMS Inventory: {str(e)}")
         sys.exit(1)
@@ -1805,9 +1815,15 @@ if __name__ == "__main__":
     logger = setup_logging()
     logger.info("Starting Script Execution")
     
-    ems_inventory = CreateInventory(Constants.AAP_URL, Constants.AAP_USERNAME, Constants.AAP_PASSWORD, Constants.ORG_NAME, logger)
+    ems_inventory = CreateInventory(Constants.AAP_API_URL, Constants.AAP_USERNAME, Constants.AAP_PASSWORD, Constants.ORG_NAME, logger)
     
     CreateEMSInventory(ems_inventory, logger)
+    # Check if the master configuration file exists before reading it
+    if not os.path.exists(Constants.MasterConfFile):
+        logger.error(f"Master configuration file {Constants.MasterConfFile} does not exist. Please check the file path and retry.")
+        sys.exit(1)
+    
+    logger.info(f"Reading master configuration file: {Constants.MasterConfFile}")
     
     
     config = configparser.ConfigParser()
@@ -1821,7 +1837,8 @@ if __name__ == "__main__":
     COMMONPLATFLAG = config.get('GLOBAL','COMMON_PLATFORM_FLAG').lower()
     F5_CORES = config.get('GLOBAL', 'F5_CORES')
     AUTOMATE_DOCKER_PULL = config.get('GLOBAL', 'AUTOMATE_DOCKER_PULL')
-    
+    POCPriems = ''
+    GWPriems = ''
     InstallationType = ''
     Ansfile = ''
     Dgid = 200
@@ -1868,7 +1885,7 @@ if __name__ == "__main__":
     logger.info("Dictionary Formed for the Selected Deployment:: {} and Setup Type:: {} and Systemtype:: {} is ::{}".format(DEPLOYMENTTYPE,SETUPTYPE,SYSTEMTYPE,ip_map_hash))
 
 
-    CreateInventoryGroups(ems_inventory, ip_map_hash, SYSTEMTYPE, logger)
+    CreateInventoryGroups(ems_inventory, SYSTEMTYPE, logger)
 
 
     # Replace the selected code with this function call:
@@ -1887,7 +1904,7 @@ if __name__ == "__main__":
     assign_vm_hostip_counts(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS)
     
     
-    ipmapjson = AssignIp(ip_map_hash, config, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS, logger)
+    ipmapjson = AssignIp(ip_map_hash)
     logger.info("Signalling IP map of the cards are ::{} ".format(ipmapjson))
     if 'poc' in SYSTEMTYPE.lower():
         POCPriems=ipmapjson['PRIMARY']['EMS']
