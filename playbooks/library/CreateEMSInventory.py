@@ -556,36 +556,32 @@ def WriteOutFile(filename,list_array):
 def convert_listarray_to_json(list_array, logger):
     """
     Convert a list array configuration to JSON format.
-    
+
     Args:
         list_array: List containing configuration key-value pairs
         logger: Logger instance for logging
-        
+
     Returns:
         dict: JSON representation of the configuration
     """
     logger.info("Converting list array to JSON format")
-    
+
     special_keys = ['interface', 'ipaddr', 'route']
-    
+
     json_data = {}
-    
+
     try:
         for item in list_array:
             if '=' in item:
                 # Split only on the first '=' to handle values that contain '='
                 key, value = item.split('=', 1)
-                
                 if key in special_keys:
-                    # Handle multi-line values by splitting on '\n' and extracting values
-                    if '\n' in value:
-                        value_list = []
-                        for line in value.split('\n'):
-                            if line.strip():  # Skip empty lines
-                                value_list.append(line.strip())
-                        json_data[key] = value_list
-                    else:
-                        json_data[key] = [value]
+                    value_list = []
+                    for each_value in item.split('\n'):
+                        if each_value.startswith(f"{key}="):
+                            value_list.append(each_value.split('=', 1)[1])
+
+                    json_data[key] = value_list
                 else:
                     # Try to parse JSON strings
                     if value.startswith('[') and value.endswith(']'):
@@ -595,15 +591,17 @@ def convert_listarray_to_json(list_array, logger):
                             json_data[key] = value
                     else:
                         json_data[key] = value
-                        
+
         container_ini_vars = {'INI_FILE_DATA': json_data}
-    
+        print(f"json data --> {container_ini_vars}")
+
         logger.info(f"Successfully converted list array to JSON: {json_data}")
         return container_ini_vars
-        
+
     except Exception as e:
         logger.error(f"Failed to convert list array to JSON: {str(e)}")
         return {}
+
 
 ################ Creating Container INI File ##############
 def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
