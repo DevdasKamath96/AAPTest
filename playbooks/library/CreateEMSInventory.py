@@ -40,6 +40,7 @@ class Constants:
     AAP_PASSWORD = "redhat"
     ORG_NAME = "Default"
     EMSInvNAME = "EMSLaunchTest"
+    FreshLaunchInvName = "FreshLaunch"
     POCGROUPNAME = "poc"
     NNIGROUPNAME = "nni"
     SSH_USER = "autoinstall"
@@ -1502,8 +1503,33 @@ def write_allemsvm_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, logger):
             logger.error(str(e))
             sys.exit(1)
             
+            
+def createFreshLaunchInventory(freshlaunchinv, logger):
+    
+    '''
+    This function creates EMS inventory in AAP
+    '''
+    logger.info(f"Creating EMS Inventory with name: {Constants.EMSInvNAME}")
+    
+    try:
+        
+        if freshlaunchinv.check_inventory_exists(Constants.FreshLaunchInvName):
+            logger.info(f"EMS Inventory '{Constants.FreshLaunchInvName}' already exists. Deleting existing inventory.")
+            freshlaunchinv.delete_inventory(Constants.FreshLaunchInvName)
+            time.sleep(2)  # Wait for 2 seconds to ensure deletion is processed
+            logger.info(f"Existing Fresh Launch Inventory '{Constants.FreshLaunchInvName}' deleted successfully.")
 
-def write_password_hosts_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM, 
+        inventory_vars = {}
+
+        freshlaunchinv.create_inventory(Constants.FreshLaunchInvName, inventory_vars)
+        logger.info("Fresh Launch Inventory created successfully.")
+        
+        # Update_inventory_variables(ems_inventory, Constants.EMSInvNAME, logger)
+    except Exception as e:
+        logger.error(f"Failed to create Fresh Launch Inventory: {str(e)}")
+        sys.exit(1)
+
+def createFreshLaunchInv(freshlaunchinv, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM, 
                                 Emsiplist, Nniiplist, SYSTEMTYPE, POCPriems, GWPriems, POCPRIEMSVM, 
                                 GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount, config, 
                                 DEPLOYMENTTYPE, F5_CORES, SETUPTYPE, AUTOMATE_DOCKER_PULL, logger):
@@ -1511,6 +1537,7 @@ def write_password_hosts_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, AL
     Write password hosts file with VM and configuration information.
     
     Args:
+        freshlaunchinv: Fresh launch inventory object
         POCVMEMSLIST: List of POC EMS VM IPs
         ALLPOCVM: List of all POC VM IPs
         NNIVMEMSLIST: List of NNI EMS VM IPs
@@ -1536,77 +1563,72 @@ def write_password_hosts_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, AL
         logger: Logger instance for error logging
     """
     try:
-        with open(Constants.Psswdhosts, "w") as phfile:
-            if len(POCVMEMSLIST) != 0:
-                phfile.write('[POCEMSVMS]'+'\n')
-                for emsvmip in POCVMEMSLIST:
-                    phfile.write(emsvmip+'\n')
-                phfile.write('\n')
+        
+        createFreshLaunchInventory(freshlaunchinv, logger)
+        
+        if len(POCVMEMSLIST) != 0:
+            freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'POCEMSVMS')
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'POCEMSVMS', POCVMEMSLIST)
 
-            if len(ALLPOCVM) != 0:
-                phfile.write('[ALLPOCVMS]'+'\n')
-                for pocvmip in ALLPOCVM:
-                    phfile.write(pocvmip+'\n')
-                phfile.write('\n')
+        if len(ALLPOCVM) != 0:
+            freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'ALLPOCVMS')
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'ALLPOCVMS', ALLPOCVM)
 
-            if len(NNIVMEMSLIST) != 0:
-                phfile.write('[NNIGWEMSVMS]'+'\n')
-                for nniemsvmip in NNIVMEMSLIST:
-                    phfile.write(nniemsvmip+'\n')
-                phfile.write('\n')
+        if len(NNIVMEMSLIST) != 0:
+            freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'NNIGWEMSVMS')
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'NNIGWEMSVMS', NNIVMEMSLIST)
 
-            if len(ALLNNIVM) != 0:
-                phfile.write('[ALLNNIGWVMS]'+'\n')
-                for nnivmip in ALLNNIVM:
-                    phfile.write(nnivmip+'\n')
+        if len(ALLNNIVM) != 0:
+            freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'ALLNNIGWVMS')
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'ALLNNIGWVMS', ALLNNIVM)
+            
+        freshLaunchVars = {}
 
-            if 'poc' in SYSTEMTYPE.lower():
-                POCVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCVM])
-                POCBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCBM])
-                POCEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Emsiplist])
-                phfile.write('\n'+'[all:vars]'+'\n')
-                phfile.write('POCVMIPS='+'['+POCVM_ips+']'+'\n')
-                phfile.write('POCBMIPS='+'['+POCBM_ips+']'+'\n')
-                phfile.write('POCEMSIPS='+'['+POCEMS_ips+']'+'\n')
-                phfile.write('POCPRIEMSIP='+POCPriems+'\n')
-                phfile.write('POCPRIEMSVM='+POCPRIEMSVM[0]+'\n')
-                phfile.write('XDMVMIP='+XDMVMIP[0]+'\n')
-                phfile.write('POCCardCount='+str(POCCardCount)+'\n')
-                phfile.write('POC_LICENSE_PATH='+config.get('GLOBAL', 'POC_LICENSE_PATH')+'\n')
-            if 'nnigw' in SYSTEMTYPE.lower():
-                NNIVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIVM])
-                NNIBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIBM])
-                NNIEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Nniiplist])
-                if SYSTEMTYPE.lower() != 'poc_nnigw':
-                    phfile.write('\n'+'[all:vars]'+'\n')
-                phfile.write('GWVMIPS='+'['+NNIVM_ips+']'+'\n')
-                phfile.write('GWBMIPS='+'['+NNIBM_ips+']'+'\n')
-                phfile.write('GWEMSIPS='+'['+NNIEMS_ips+']'+'\n')
-                phfile.write('GWPRIEMSIP='+GWPriems+'\n')
-                phfile.write('GWPRIEMSVM='+GWPRIEMSVM[0]+'\n')
-                phfile.write('SIGVMIP='+SIGVMIP[0]+'\n')
-                phfile.write('GWCardCount='+str(GWCardCount)+'\n')
-                phfile.write('NNI_LICENSE_PATH='+config.get('GLOBAL', 'NNI_LICENSE_PATH')+'\n')
-
-            #phfile.write('UPGRADE_QCOW2='+config.get('GLOBAL', 'UPGRADE_QCOW2_PATH')+'\n')
-            phfile.write('SYSTEM_TYPE='+SYSTEMTYPE+'\n')
-            phfile.write('DEPLOYMENTTYPE='+DEPLOYMENTTYPE+'\n')
-            phfile.write('F5_CORES=' + F5_CORES + '\n')
-            phfile.write('SETUP_TYPE='+SETUPTYPE.lower()+'\n')
-            if SETUPTYPE.lower() == 'wavelite':
-                for site in ['PRIMARY','GEO']:
-                    WAVELITE_ROUTE=config.get(site,'WAVELITE_ROUTE')
-                    phfile.write('WAVELITE_ROUTE_'+site+'='+WAVELITE_ROUTE+'\n')
-            phfile.write('AUTOMATE_DOCKER_PULL='+AUTOMATE_DOCKER_PULL+'\n')
-            if AUTOMATE_DOCKER_PULL.lower()=='yes':
-                phfile.write('DOCKER_USERNAME='+config.get('GLOBAL', 'DOCKER_USERNAME')+'\n')
-                phfile.write('DOCKER_PASSWORD='+config.get('GLOBAL', 'DOCKER_PASSWORD').strip('"')+'\n')
-                phfile.write('DOCKER_REGISTRY='+config.get('GLOBAL', 'DOCKER_REGISTRY')+'\n')
-                phfile.write('COSIGN_PUB_KEY_PATH=/Software/'+config.get('GLOBAL', 'COSIGN_PUB_KEY')+'\n')
-            phfile.write('WILDCARDFQDN='+config.get('GLOBAL', 'WILDCARDFQDN')+'\n')
-            phfile.write('ansible_ssh_user=autoinstall'+'\n')
-            phfile.write('ansible_ssh_pass=kodiak'+'\n')
-            phfile.write('ansible_connection=ssh'+'\n')
+        if 'poc' in SYSTEMTYPE.lower():
+            POCVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCVM])
+            POCBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCBM])
+            POCEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Emsiplist])
+            freshLaunchVars['POCVMIPS'] = POCVM_ips
+            freshLaunchVars['POCBMIPS'] = POCBM_ips
+            freshLaunchVars['POCEMSIPS'] = POCEMS_ips
+            freshLaunchVars['POCPRIEMSIP'] = POCPriems
+            freshLaunchVars['POCPRIEMSVM'] = POCPRIEMSVM[0]
+            freshLaunchVars['XDMVMIP'] = XDMVMIP[0]
+            freshLaunchVars['POCCardCount'] = POCCardCount
+            freshLaunchVars['POC_LICENSE_PATH'] = config.get('GLOBAL', 'POC_LICENSE_PATH')
+        if 'nnigw' in SYSTEMTYPE.lower():
+            NNIVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIVM])
+            NNIBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIBM])
+            NNIEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Nniiplist])
+            freshLaunchVars['GWVMIPS'] = NNIVM_ips
+            freshLaunchVars['GWBMIPS'] = NNIBM_ips
+            freshLaunchVars['GWEMSIPS'] = NNIEMS_ips
+            freshLaunchVars['GWPRIEMSIP'] = GWPriems
+            freshLaunchVars['GWPRIEMSVM'] = GWPRIEMSVM[0]
+            freshLaunchVars['SIGVMIP'] = SIGVMIP[0]
+            freshLaunchVars['GWCardCount'] = GWCardCount
+            freshLaunchVars['NNI_LICENSE_PATH'] = config.get('GLOBAL', 'NNI_LICENSE_PATH')
+            
+        freshLaunchVars['SYSTEM_TYPE'] = SYSTEMTYPE
+        freshLaunchVars['DEPLOYMENTTYPE'] = DEPLOYMENTTYPE
+        freshLaunchVars['F5_CORES'] = F5_CORES
+        freshLaunchVars['SETUP_TYPE'] = SETUPTYPE.lower()
+        if SETUPTYPE.lower() == 'wavelite':
+            for site in ['PRIMARY','GEO']:
+                WAVELITE_ROUTE=config.get(site,'WAVELITE_ROUTE')
+                freshLaunchVars['WAVELITE_ROUTE_'+site] = WAVELITE_ROUTE
+        freshLaunchVars['AUTOMATE_DOCKER_PULL'] = AUTOMATE_DOCKER_PULL
+        if AUTOMATE_DOCKER_PULL.lower()=='yes':
+            freshLaunchVars['DOCKER_USERNAME'] = config.get('GLOBAL', 'DOCKER_USERNAME')
+            freshLaunchVars['DOCKER_PASSWORD'] = config.get('GLOBAL', 'DOCKER_PASSWORD').strip('"')
+            freshLaunchVars['DOCKER_REGISTRY'] = config.get('GLOBAL', 'DOCKER_REGISTRY')
+            freshLaunchVars['COSIGN_PUB_KEY_PATH'] = '/Software/'+config.get('GLOBAL', 'COSIGN_PUB_KEY')
+        freshLaunchVars['WILDCARDFQDN'] = config.get('GLOBAL', 'WILDCARDFQDN')
+        freshLaunchVars['ansible_ssh_user'] = 'autoinstall'
+        freshLaunchVars['ansible_ssh_pass'] = 'kodiak'
+        freshLaunchVars['ansible_connection'] = 'ssh'
+        
+        freshlaunchinv.update_inventory_vars(Constants.FreshLaunchInvName, freshLaunchVars)
 
     except Exception as e:
         logger.error(str(e))
@@ -1813,9 +1835,9 @@ if __name__ == "__main__":
     logger = setup_logging()
     logger.info("Starting Script Execution")
     
-    ems_inventory = CreateInventory(Constants.AAP_API_URL, Constants.AAP_USERNAME, Constants.AAP_PASSWORD, Constants.ORG_NAME, logger)
+    inventory = CreateInventory(Constants.AAP_API_URL, Constants.AAP_USERNAME, Constants.AAP_PASSWORD, Constants.ORG_NAME, logger)
     
-    CreateEMSInventory(ems_inventory, logger)
+    CreateEMSInventory(inventory, logger)
     # Check if the master configuration file exists before reading it
     if not os.path.exists(Constants.MasterConfFile):
         logger.error(f"Master configuration file {Constants.MasterConfFile} does not exist. Please check the file path and retry.")
@@ -1883,7 +1905,7 @@ if __name__ == "__main__":
     logger.info("Dictionary Formed for the Selected Deployment:: {} and Setup Type:: {} and Systemtype:: {} is ::{}".format(DEPLOYMENTTYPE,SETUPTYPE,SYSTEMTYPE,ip_map_hash))
 
 
-    CreateInventoryGroups(ems_inventory, SYSTEMTYPE, logger)
+    CreateInventoryGroups(inventory, SYSTEMTYPE, logger)
 
 
     # Replace the selected code with this function call:
@@ -1922,7 +1944,7 @@ if __name__ == "__main__":
 
 
     # Call the function
-    update_input_data(ems_inventory, ipmapjson, Imagelist, NNIImagelist, INTERNAL_HOST_DOMAIN, config, logger)
+    update_input_data(inventory, ipmapjson, Imagelist, NNIImagelist, INTERNAL_HOST_DOMAIN, config, logger)
 
     #TODO: check if this is needed or used anywhere
     write_allemsvm_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, logger)
@@ -1944,7 +1966,7 @@ if __name__ == "__main__":
         
 
     # Replace the original code with a function call:
-    write_password_hosts_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM,
+    createFreshLaunchInv(inventory, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM,
                              Emsiplist, Nniiplist, SYSTEMTYPE, POCPriems, GWPriems, POCPRIEMSVM,
                              GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount, config,
                              DEPLOYMENTTYPE, F5_CORES, SETUPTYPE, AUTOMATE_DOCKER_PULL, logger)
