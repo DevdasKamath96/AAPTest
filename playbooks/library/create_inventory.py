@@ -83,10 +83,11 @@ class CreateInventory(BaseCreateInventory):
         raise ValueError(f"Inventory '{name}' not found.")
 
     def update_inventory_vars(self, name: str, variables: dict) -> None:
+        variables_str = yaml.dump(variables) if variables else ""
         self.logger.info(f"Updating inventory variables for: {name}")
         inventory_id = self.get_inventory_id(name)
         url = f"{self.aap_url}/inventories/{inventory_id}/"
-        payload = {"variables": variables}
+        payload = {"variables": variables_str}
         response = requests.patch(url, headers=self.headers, json=payload)
         response.raise_for_status()
         self.logger.info(f"Updated inventory variables for: {name}")

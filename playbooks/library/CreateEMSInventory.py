@@ -1566,21 +1566,39 @@ def createFreshLaunchInv(freshlaunchinv, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, A
         
         createFreshLaunchInventory(freshlaunchinv, logger)
         
+        iplist = []
+        
         if len(POCVMEMSLIST) != 0:
+            for host in POCVMEMSLIST:
+                if host not in iplist:
+                    freshlaunchinv.create_host(Constants.FreshLaunchInvName, host)
+                    iplist.append(host)
             freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'POCEMSVMS')
-            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'POCEMSVMS', POCVMEMSLIST)
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, POCVMEMSLIST, 'POCEMSVMS', )
 
         if len(ALLPOCVM) != 0:
+            for host in ALLPOCVM:
+                if host not in iplist:
+                    freshlaunchinv.create_host(Constants.FreshLaunchInvName, host)
+                    iplist.append(host)
             freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'ALLPOCVMS')
-            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'ALLPOCVMS', ALLPOCVM)
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, ALLPOCVM, 'ALLPOCVMS')
 
         if len(NNIVMEMSLIST) != 0:
+            for host in NNIVMEMSLIST:
+                if host not in iplist:
+                    freshlaunchinv.create_host(Constants.FreshLaunchInvName, host)
+                    iplist.append(host)
             freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'NNIGWEMSVMS')
-            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'NNIGWEMSVMS', NNIVMEMSLIST)
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, NNIVMEMSLIST, 'NNIGWEMSVMS')
 
         if len(ALLNNIVM) != 0:
+            for host in ALLNNIVM:
+                if host not in iplist:
+                    freshlaunchinv.create_host(Constants.FreshLaunchInvName, host)
+                    iplist.append(host)
             freshlaunchinv.create_group(Constants.FreshLaunchInvName, 'ALLNNIGWVMS')
-            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, 'ALLNNIGWVMS', ALLNNIVM)
+            freshlaunchinv.add_hosts_to_group(Constants.FreshLaunchInvName, ALLNNIVM, 'ALLNNIGWVMS')
             
         freshLaunchVars = {}
 
