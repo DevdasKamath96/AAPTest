@@ -12,7 +12,7 @@
 
     - name: Pull image from private registry
       containers.podman.podman_image:
-        name: "{{ lookup('env', 'REGISTRY_URL') }}/{{ IMAGE }}"
+        name: "{{ lookup('env', 'REGISTRY_URL') }}/{{ INI_FILE_DATA.image }}"
         pull: true
       register: async_jobs
       async: 18000
