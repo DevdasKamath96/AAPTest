@@ -45,13 +45,13 @@
       template:
         src: ./templates/ems_answer_file.j2
         dest: /DGdata/Software/{{ ANS | basename }}
-      when: group_master not in group_names and group_replica not in group_names
+      when: group_poc in group_names or group_nni in group_names
 
     - name: Copy the answer template from EMS VM to Container
       containers.podman.podman_container_exec:
         name: "{{CONTAINERNAME}}"
         command: /bin/cp /Software/{{ANS | basename}} /home/autoinstall/EMS.ans
-      when: group_master not in group_names and group_replica not in group_names
+      when: group_poc in group_names or group_nni in group_names
 
     - name: verify primary EMS services status
       async: 400
@@ -60,7 +60,7 @@
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_ems_status
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 1
       ignore_errors: true
 
     - name: configuring primary EMS services
@@ -73,7 +73,7 @@
       ignore_unreachable: true
       become: true
       become_method: sudo
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1 and verify_ems_status.failed == true
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 1 and verify_ems_status.failed == true
 
     - name: verify primary EMS services status
       async: 600
@@ -82,21 +82,21 @@
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_ems_status_res
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 1
 
     - name: copy the /DGdata/Software/ttcred.properties from Primary EMS VM to /Software/ path of Prod Automation
       fetch:
         src: "/DGdata/Software/ttcred.properties"
         dest: "/Software/ttcred.properties"
         flat: yes
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 1
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 1
 
 
     - name: copy the /Software/ttcred.properties from prod automation to /DGdata/Software/ path of ems vms
       copy:
         src: "/Software/ttcred.properties"
         dest: "/DGdata/Software/ttcred.properties"
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE != 1
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE != 1
 
     - name: verify secondary EMS services status
       async: 400
@@ -105,7 +105,7 @@
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_sec_ems_status
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 2
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 2
       ignore_errors: true
 
     - name: configuring secondary EMS services
@@ -118,7 +118,7 @@
       ignore_unreachable: true
       become: true
       become_method: sudo
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 2 and verify_sec_ems_status.failed == true
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 2 and verify_sec_ems_status.failed == true
 
     - name: verify secondary EMS services status
       async: 600
@@ -127,7 +127,7 @@
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_sec_ems_status
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 2
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 2
 
     - name: verify geo EMS services status
       async: 400
@@ -136,7 +136,7 @@
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_geo_ems_status
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 3
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 3
       ignore_errors: true
 
     - name: configuring GEO  EMS services
@@ -149,7 +149,7 @@
       ignore_unreachable: true
       become: true
       become_method: sudo
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 3 and verify_geo_ems_status.failed == true
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 3 and verify_geo_ems_status.failed == true
 
     - name: verify geo EMS services status
       async: 600
@@ -158,7 +158,8 @@
         name: "{{CONTAINERNAME}}"
         command: perl /DG/activeRelease/Tools/VerifyEMSServiceStatus.pl
       register: verify_geo_ems_status
-      when: group_master not in group_names and group_replica not in group_names and INSTALLATIONTYPE == 3
+      when: (group_poc in group_names or group_nni in group_names) and INSTALLATIONTYPE == 3
+
 
 
 

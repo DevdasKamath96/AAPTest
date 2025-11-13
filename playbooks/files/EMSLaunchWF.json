@@ -1,0 +1,40 @@
+{
+    "wf_name": "EMS Card Launch Dynamic Workflow Demo",
+    "wf_description": "Workflow for EMS card launch",
+    "organization": "Default",
+    "aap_user": "admin",
+    "aap_password": "redhat",
+    "Inventory": "EMSLaunch",
+    "templates": [
+        {
+            "Node": "EMSLaunchPreReq"
+        },
+        {
+            "Node": "EMSImagePullMsiDev",
+            "Parent": ["EMSLaunchPreReq"],
+            "NodeType": "success"
+        },
+        {
+            "Node": "EMSImagePullBrblr",
+            "Parent": ["EMSImagePullMsiDev"],
+            "NodeType": "failure"
+        },
+        {
+            "Node": "EMSContainerLaunch",
+            "Parent": ["EMSImagePullBrblr", "EMSImagePullMsiDev"],
+            "NodeType": "success"
+        },
+        {
+            "Node": "EMSContainerConfiguration",
+            "Parent": ["EMSContainerLaunch"],
+            "NodeType": "failure"
+        },
+        {
+            "Node": "CreateEMSPasswordless",
+            "Parent": ["EMSContainerConfiguration"],
+            "NodeType": "success"
+        }
+    ]
+}
+
+

@@ -92,6 +92,16 @@ class CreateInventory(BaseCreateInventory):
         response.raise_for_status()
         self.logger.info(f"Updated inventory variables for: {name}")
         
+    def get_inventory_vars(self, name: str) -> dict:
+        self.logger.info(f"Reading inventory variables for: {name}")
+        inventory_id = self.get_inventory_id(name)
+        url = f"{self.aap_url}/inventories/{inventory_id}/"
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        variables = response.json().get("variables", {})
+        self.logger.info(f"Retrieved variables for inventory: {name}")
+        return yaml.safe_load(variables) if variables else {}
+        
     def delete_inventory(self, name: str) -> None:
         self.logger.info(f"Deleting inventory: {name}")
         inventory_id = self.get_inventory_id(name)
@@ -323,5 +333,4 @@ class CreateInventory(BaseCreateInventory):
             response = requests.delete(url, headers=self.headers)
             response.raise_for_status()
             self.logger.info(f"Removed host {host_name} from group {group_name}")
-
 

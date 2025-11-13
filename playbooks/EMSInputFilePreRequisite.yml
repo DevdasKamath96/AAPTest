@@ -5,9 +5,12 @@
   tasks:
     - name: cleanup ini file
       file: 
-        path: /home/autoinstall/temp/{{INIFILE | basename}}
+        path: /home/autoinstall/temp/{{item}}
         state: absent
       ignore_errors: True
+      with_items:
+        - "{{INIFILE | basename}}"
+        - "{{ANS | basename}}"
 
     - name: Create ini file from template
       template:
@@ -20,3 +23,5 @@
       template:
         src: ./templates/ems_answer_file.j2
         dest: /home/autoinstall/temp/{{ ANS | basename }}
+        owner: "{{ ansible_ssh_user }}"
+        group: kodiakgroup

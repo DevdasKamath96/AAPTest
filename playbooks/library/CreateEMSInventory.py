@@ -8,6 +8,7 @@ from grp import getgrgid, getgrnam
 import logging
 import time
 from typing import List
+from xmlrpc import server
 import yaml
 import ipaddress as newipaddress
 import json
@@ -40,12 +41,13 @@ class Constants:
     AAP_PASSWORD = "redhat"
     ORG_NAME = "Default"
     EMSInvNAME = "EMSLaunchTest"
+    FreshLaunchMainInvName = "FreshLaunchMain"
     FreshLaunchInvName = "FreshLaunch"
     POCGROUPNAME = "poc"
     NNIGROUPNAME = "nni"
     SSH_USER = "autoinstall"
     SSH_PASS = "kodiak"
-    CONFIG_SCRIPT_PATH = "/Software/ProdApplicationInfra/ipaserverclientconfig.sh"
+    CONFIG_SCRIPT_PATH = "ipaserverclientconfig.sh"
     CONFIG_PATH = "/usr/local/bin/ipaconfig"
     Relative_path = "./files/"
     Psswdhosts = f'{Relative_path}psswdhosts'
@@ -58,38 +60,27 @@ class Constants:
     pocdatfile = f'{Relative_path}images.dat'
     nnidatfile = f'{Relative_path}nniimages.dat'
     ALLVMiptxt = f'{Relative_path}ALLEMSVM.txt'
-    CLUSTERIDDICT = {'PRIMARY' : 1, 'GEO' : 2, 'SECONDARY' : 1}
+    SITE1 = 'SITE1'
+    SITE2 = 'SITE2'
+    # CLUSTERIDDICT = {'PRIMARY' : 1, 'GEO' : 2, 'SECONDARY' : 1}
     hostext={'POC':'poc','NNI':'gw'}
-    IDAP_LIGHT_CARDS = {0: ['IDAPElasticsrch', 'IDAPHadoop','IDAPWebService', 'IDAPDshboard', 'IDAPLanding'],
-                    1: ['IDAPElasticsrch', 'IDAPLanding','IDAPWebService', 'IDAPDshboard']}
+    # IDAP_LIGHT_CARDS = {0: ['IDAPElasticsrch', 'IDAPHadoop','IDAPWebService', 'IDAPDshboard', 'IDAPLanding'],
+    #                 1: ['IDAPElasticsrch', 'IDAPLanding','IDAPWebService', 'IDAPDshboard']}
     exclude_cards = {"FieldUtils", "FieldUtilCouchDB", "F5", "EMS", "EMSNNI"}
-    clustevar={'PRIMARY' : 1, 'SECONDARY' : 2, 'GEO' : 3}
+    clustevar={SITE1 : 1, SITE2 : 2}
     POC_RHELIDM_FILE = f'{Relative_path}RHELIDMMCVSParms.txt'
     NNIGW_RHELIDM_FILE = f'{Relative_path}NNIGWRHELIDMMCVSParms.txt'
 
     LICENSE_FILE_USER = "autoinstall"
     LICENSE_FILE_GROUP = "kodiakgroup"
     logfile = 'CreateEMSInventory.log'
-    required_files = [Usertemplatefile, waveliteanswertemplate, pocdatfile, nnidatfile, MasterConfFile]
+    required_files = [Usertemplatefile, waveliteanswertemplate]
 
 
 def check_required_files(systemtype, logger):
     logger.info("Checking for required user input files and templates.")
     for file in Constants.required_files:
-        if file == Constants.pocdatfile and 'poc' in systemtype.lower():
-            if not os.path.isfile(file):
-                logger.error(f"User Input File ::{file} doesn't exist. Please check and retry")
-                sys.exit(1)
-            continue
-        
-                
-        if file == Constants.nnidatfile and 'nnigw' in systemtype.lower():
-            if not os.path.isfile(file):
-                logger.error(f"User Input File ::{file} doesn't exist. Please check and retry")
-                sys.exit(1)
-            continue
-        
-        if not os.path.isfile(file) and file not in [Constants.pocdatfile, Constants.nnidatfile]:
+        if not os.path.isfile(file):
             logger.error(f"User Input File ::{file} doesn't exist. Please check and retry")
             sys.exit(1)
             
@@ -105,100 +96,83 @@ def setup_logging():
 
 
 ############# Creating a Dict with the List of Cards per Site with NNIGW RHELIDM #############
-def CreateContainerHash():
+# def CreateContainerHash():
+#     if SETUPTYPE.lower() == 'wavelite':
+#         if SYSTEMTYPE.lower() == 'poc_nnigw':
+#             if DEPLOYMENTTYPE == '2':
+#                 ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': ''},'GEO' : {'EMS': '', 'EMSNNI': ''}}
+#         #Tocheck why poc and nnigw separately if wavelite
+#         if SYSTEMTYPE.lower() == 'poc':
+#             if DEPLOYMENTTYPE == '2':
+#                 ipmap = {'PRIMARY': {'EMS': ''},'GEO' : {'EMS': ''}}
+#         if SYSTEMTYPE.lower() == 'nnigw':
+#             if DEPLOYMENTTYPE == '2':
+#                 ipmap = {'PRIMARY': {'EMSNNI': ''},'GEO' : {'EMSNNI': ''}}
+                
+#     else:
+#         if SYSTEMTYPE.lower() == 'poc':
+#             if DEPLOYMENTTYPE == '2':
+#                 ipmap = {'PRIMARY': {'EMS': ''},'GEO' : {'EMS': ''}}
+#             elif DEPLOYMENTTYPE == '1':
+#                 ipmap = {'PRIMARY': {'EMS': ''},'SECONDARY': {'EMS': ''},'GEO' : {'EMS': ''}}
+#             elif DEPLOYMENTTYPE == '4':
+#                 ipmap = {'PRIMARY': {'EMS': ''},'SECONDARY': {'EMS': ''}}
+#         if SYSTEMTYPE.lower() == 'nnigw':
+#             if DEPLOYMENTTYPE == '2':
+#                 ipmap = {'PRIMARY': {'EMSNNI': ''},'GEO' : {'EMSNNI': ''}}
+#             elif DEPLOYMENTTYPE == '1':
+#                 ipmap = {'PRIMARY': {'EMSNNI': ''},'SECONDARY': {},'GEO' : {'EMSNNI': ''}}
+#             elif DEPLOYMENTTYPE == '4':
+#                 ipmap = {'PRIMARY': {'EMSNNI': ''},'SECONDARY': {}}
+#         if SYSTEMTYPE.lower() == 'poc_nnigw':
+#             if DEPLOYMENTTYPE == '2':
+#                 ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': ''},'GEO' : {'EMS': '', 'EMSNNI': ''}}
+#             elif DEPLOYMENTTYPE == '3':
+#                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': ''}}
+#             elif DEPLOYMENTTYPE == '1':
+#                 ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': ''},'SECONDARY': {'EMS': ''},'GEO' : {'EMS': '', 'EMSNNI': ''}}
+#             elif DEPLOYMENTTYPE == '4':
+#                 ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': ''},'SECONDARY': {'EMS': ''}}
+
+#     return ipmap
+
+
+def CreateEMSIPHash():
     if SETUPTYPE.lower() == 'wavelite':
         if SYSTEMTYPE.lower() == 'poc_nnigw':
             if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '', 'NNIipaserver1': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver2': '', 'NNIipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '3':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '', 'NNIipaserver1': '','NNIipaserver2': ''}}
-        if SYSTEMTYPE.lower() == 'poc':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': ''},'GEO' : {'EMS': '','ipaserver2': ''}}
-            elif  DEPLOYMENTTYPE == '3':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''}}
-        if SYSTEMTYPE.lower() == 'nnigw':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': ''},'GEO' : {'EMSNNI': '', 'NNIipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '3':
-                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': '','NNIipaserver2': ''}}
+                ipmap = {'SITE1': {'EMSPRI': '', 'EMSNNIPRI': ''},'SITE2' : {'EMSGEO': '', 'EMSGEONNI': ''}}
+            # elif DEPLOYMENTTYPE == '3':
+            #     ipmap = {'SITE1': {'EMS': '', 'EMSNNI': ''}}
+
     else:
         if SYSTEMTYPE.lower() == 'poc':
             if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''},'GEO' : {'EMS': '','ipaserver3': '','ipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '3':
-               ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''}}
+                ipmap = {'SITE1': {'EMSPRI': ''},'SITE2' : {'EMSGEO': ''}}
+            # elif DEPLOYMENTTYPE == '3':
+            #    ipmap = {'SITE1': {'EMS': ''}}
             elif DEPLOYMENTTYPE == '1':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': ''},'SECONDARY': {'EMS': '', 'ipaserver2': ''},'GEO' : {'EMS': '','ipaserver3': '','ipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '4':
-                ipmap = {'PRIMARY': {'EMS': '','ipaserver1': '','ipaserver2': ''},'SECONDARY': {'EMS': '','ipaserver3': '','ipaserver4': ''}}
+                ipmap = {'SITE1': {'EMSPRI': '', 'EMSSEC': ''}, 'SITE2' : {'EMSGEO': ''}}
+            # elif DEPLOYMENTTYPE == '4':
+            #     ipmap = {'SITE1': {'EMS': '','EMSSEC': ''}}
         if SYSTEMTYPE.lower() == 'nnigw':
             if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''},'GEO' : {'EMSNNI': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '3':
-               ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '1':
-                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {},'GEO' : {'EMSNNI': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '4':
-                ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {}}
+                ipmap = {'SITE1': {'EMSNNIPRI': ''},'SITE2' : {'EMSNNIGEO': ''}}
+            # elif DEPLOYMENTTYPE == '3':
+            #    ipmap = {'SITE1': {'EMSNNI': ''}}
+            # elif DEPLOYMENTTYPE == '1':
+            #     ipmap = {'SITE1': {'EMSNNI': '',},'SECONDARY': {},'GEO' : {'EMSNNI': ''}}
+            # elif DEPLOYMENTTYPE == '4':
+            #     ipmap = {'PRIMARY': {'EMSNNI': ''},'SECONDARY': {}}
         if SYSTEMTYPE.lower() == 'poc_nnigw':
             if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver3': '','ipaserver4': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '3':
-               ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''}}
+                ipmap = {'SITE1': {'EMSPRI': '', 'EMSNNIPRI': ''},'SITE2' : {'EMSGEO': '', 'EMSNNIGEO': ''}}
+            # elif DEPLOYMENTTYPE == '3':
+            #    ipmap = {'SITE1': {'EMS': '', 'EMSNNI': ''}}
             elif DEPLOYMENTTYPE == '1':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {'EMS': '', 'ipaserver2': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver3': '','ipaserver4': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '4':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {'EMS': '', 'ipaserver3': '','ipaserver4': ''}}
-
-    return ipmap
-
-
-def CreateContainerhashNNIRHEL():
-    if SETUPTYPE.lower() == 'wavelite':
-        if SYSTEMTYPE.lower() == 'poc_nnigw':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '', 'NNIipaserver1': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver2': '', 'NNIipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '3':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '', 'NNIipaserver1': '','NNIipaserver2': ''}}
-        if SYSTEMTYPE.lower() == 'poc':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': ''},'GEO' : {'EMS': '','ipaserver2': ''}}
-            elif  DEPLOYMENTTYPE == '3':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''}}
-        if SYSTEMTYPE.lower() == 'nnigw':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': ''},'GEO' : {'EMSNNI': '', 'NNIipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '3':
-                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': '','NNIipaserver2': ''}}
-    else:
-        if SYSTEMTYPE.lower() == 'poc':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''},'GEO' : {'EMS': '','ipaserver3': '','ipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '3':
-               ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': '','ipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '1':
-                ipmap = {'PRIMARY': {'EMS': '', 'ipaserver1': ''},'SECONDARY': {'EMS': '', 'ipaserver2': ''},'GEO' : {'EMS': '','ipaserver3': '','ipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '4':
-                ipmap = {'PRIMARY': {'EMS': '','ipaserver1': '','ipaserver2': ''},'SECONDARY': {'EMS': '','ipaserver3': '','ipaserver4': ''}}
-        if SYSTEMTYPE.lower() == 'nnigw':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''},'GEO' : {'EMSNNI': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '3':
-               ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '1':
-                ipmap = {'PRIMARY': {'EMSNNI': '', 'NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {},'GEO' : {'EMSNNI': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '4':
-                ipmap = {'PRIMARY': {'EMSNNI': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {}}
-        if SYSTEMTYPE.lower() == 'poc_nnigw':
-            if DEPLOYMENTTYPE == '2':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver3': '','ipaserver4': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '3':
-               ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''}}
-            elif DEPLOYMENTTYPE == '1':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {'EMS': '', 'ipaserver2': ''},'GEO' : {'EMS': '', 'EMSNNI': '','ipaserver3': '','ipaserver4': '','NNIipaserver3': '','NNIipaserver4': ''}}
-            elif DEPLOYMENTTYPE == '4':
-                ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': '', 'ipaserver1': '','ipaserver2': '','NNIipaserver1': '','NNIipaserver2': ''},'SECONDARY': {'EMS': '', 'ipaserver3': '','ipaserver4': ''}}
+                ipmap = {'SITE1': {'EMSPRI': '', 'EMSNNIPRI': '', 'EMSSEC': ''}, 'SITE2' : {'EMSGEO': '', 'EMSNNIGEO': ''}}
+            # elif DEPLOYMENTTYPE == '4':
+            #     ipmap = {'PRIMARY': {'EMS': '', 'EMSNNI': ''},'SECONDARY': {'EMS': ''}}
 
     return ipmap
 
@@ -291,26 +265,27 @@ def CreateInventoryGroups(ems_inventory: CreateInventory, system_type, logger):
     logger.info("------------------ END of  CreateInventoryGroups() ------------------")
     
 
-def AssignIp(ipmap):
+def AssignOAMPlaneIP(ipmap):
+    # Assign OAM IP for all the cards in ipmap which are not allocated IP
     logger.info("------------------ Calling AssignIp() ------------------")
-    for i in ipmap:
+    for site in ipmap:
         newsgip = ''
-        oamip = config.get(i,'OAMPLANE_MGMT_NW').split(':')
-        myip1 = oamip[0]
-        mylist,ipalist = [],[]
-        for card in ipmap[i]:
-            if 'ipaserver' in card:
-                ipalist.append(card)
+        oamip = FreshLaunchInvVars.get(site).get('OAMPLANE_MGMT_NW').strip()
+        myip1 = oamip
+        mylist = []
+        # for card in ipmap[site]:
+        #     if 'ipaserver' in card:
+        #         ipalist.append(card)
 
         #Interchange NNIipaserver2 and NNIipaserver1 index position in ipalist if NNIipaserver2 comes first
-        if  SETUPTYPE.lower() == 'wavelite' and 'NNIipaserver2' in ipalist and 'NNIipaserver1' in ipalist:
-            k, j = ipalist.index('NNIipaserver1'), ipalist.index('NNIipaserver2')
-            if j < k:
-                ipalist[k], ipalist[j] = ipalist[j], ipalist[k]
+        # if  SETUPTYPE.lower() == 'wavelite' and 'NNIipaserver2' in ipalist and 'NNIipaserver1' in ipalist:
+        #     k, j = ipalist.index('NNIipaserver1'), ipalist.index('NNIipaserver2')
+        #     if j < k:
+        #         ipalist[k], ipalist[j] = ipalist[j], ipalist[k]
 
-        if config.get(i,'FIXEDIP_SERVICETYPE_MAP') != '':
-            logger.info("FIXEDIP_SERVICETYPE_MAP value from Input file is ::{}".format(config.get(i,'FIXEDIP_SERVICETYPE_MAP')))
-            ipaddress = config.get(i,'FIXEDIP_SERVICETYPE_MAP').split(';')
+        if FreshLaunchInvVars.get(site).get('FIXEDIP_SERVICETYPE_MAP') != '':
+            logger.info("FIXEDIP_SERVICETYPE_MAP value from Input file is ::{}".format(FreshLaunchInvVars.get(site).get('FIXEDIP_SERVICETYPE_MAP')))
+            ipaddress = FreshLaunchInvVars.get(site).get('FIXEDIP_SERVICETYPE_MAP').split(';')
             mylist = []
             for val in ipaddress:
                 myfinalval = val.split(':')
@@ -319,21 +294,21 @@ def AssignIp(ipmap):
                     mylist.extend(myfinalval[1].split(','))
                     newsgip = mylist[-1]
                 else:
-                    ipmap[i][myfinalval[0]] = str(myfinalval[1])
+                    ipmap[site][myfinalval[0]] = str(myfinalval[1])
                     newsgip = myfinalval[1]
 
-        if len(ipalist) != 0:
-            for ip in range(0,len(mylist)):
-                ipmap[i].update({ ipalist[ip] : str(mylist[ip]) })
+        # if len(ipalist) != 0:
+        #     for ip in range(0,len(mylist)):
+        #         ipmap[site].update({ ipalist[ip] : str(mylist[ip]) })
 
-        for myip in  ipmap[i]:
-            if ipmap[i][myip] == '':
-                logger.info("Fixed IP is not allocated for {}. Hence assinging IP from OAMPLane Ip".format(myip))
-                ipmap[i][myip] = str(myip1)
+        for card in ipmap[site]:
+            if ipmap[site][card] == '':
+                logger.info("Fixed IP is not allocated for {}. Hence assinging IP from OAMPLane Ip".format(card))
+                ipmap[site][card] = str(myip1)
                 myip1 = newipaddress.ip_address(myip1) + 1
                 newsgip = myip1
 
-        mylistmap[i].update({ 'oamplaneip' : str(newsgip) })
+        mylistmap[site].update({ 'oamplaneip' : str(newsgip) })
 
     logger.info("------------------ End Of AssignIp() ------------------")
     return ipmap
@@ -363,25 +338,25 @@ def Createinterface(site):
     logger.info("------------------ Calling Createinterface() ------------------")
     logger.info("Creating InterfaceList based on User Input File")
     if SETUPTYPE.lower() == 'wavelite':
-        if config.get(site,'OAMPLANE_MGMT_BRIDGE') != '':
-            interfacevalue = 'eth1#'+config.get(site,'OAMPLANE_MGMT_BRIDGE')
+        if FreshLaunchInvVars.get(site).get('OAMPLANE_MGMT_BRIDGE') != '':
+            interfacevalue = 'eth1#'+FreshLaunchInvVars.get(site).get('OAMPLANE_MGMT_BRIDGE')
             interfacelist = 'eth1'
     else:
-        if config.get(site,'OAMPLANE_MGMT_BRIDGE') != '':
-            interfacevalue = 'eth1#'+config.get(site,'OAMPLANE_MGMT_BRIDGE')
+        if FreshLaunchInvVars.get(site).get('OAMPLANE_MGMT_BRIDGE') != '':
+            interfacevalue = 'eth1#'+FreshLaunchInvVars.get(site).get('OAMPLANE_MGMT_BRIDGE')
             interfacelist = 'eth1'
-        if config.get(site,'SERVICEPLANE_MGMT_BRIDGE') != '':
+        if FreshLaunchInvVars.get(site).get('SERVICEPLANE_MGMT_BRIDGE') != '':
             logger.info("SERVICEPLANE_MGMT_BRIDGE Value is configured in User file. Adding to Interfacelist")
             interfacelist = interfacelist+',eth2'
-            interfacevalue = interfacevalue+'\n'+'interface'+'='+'eth2#'+config.get(site,'SERVICEPLANE_MGMT_BRIDGE')
-        if config.get(site,'REMOTELOGPLANE_MGMT_BRIDGE') != '':
+            interfacevalue = interfacevalue+'\n'+'interface'+'='+'eth2#'+FreshLaunchInvVars.get(site).get('SERVICEPLANE_MGMT_BRIDGE')
+        if FreshLaunchInvVars.get(site).get('REMOTELOGPLANE_MGMT_BRIDGE') != '':
             logger.info("REMOTELOGPLANE_MGMT_BRIDGE Value is configured in User file. Adding to Interfacelist")
             interfacelist = interfacelist+',eth3'
-            interfacevalue = interfacevalue+'\n'+'interface'+'='+'eth3#'+config.get(site,'REMOTELOGPLANE_MGMT_BRIDGE')
-        if config.get(site,'RXPLANE_MGMT_BRIDGE') != '':
+            interfacevalue = interfacevalue+'\n'+'interface'+'='+'eth3#'+FreshLaunchInvVars.get(site).get('REMOTELOGPLANE_MGMT_BRIDGE')
+        if FreshLaunchInvVars.get(site).get('RXPLANE_MGMT_BRIDGE') != '':
             logger.info("RXPLANE_MGMT_BRIDGE Value is configured in User file. Adding to Interfacelist")
             interfacelist = interfacelist+',eth4'
-            interfacevalue = interfacevalue+'\n'+'interface'+'='+'eth4#'+config.get(site,'RXPLANE_MGMT_BRIDGE')
+            interfacevalue = interfacevalue+'\n'+'interface'+'='+'eth4#'+FreshLaunchInvVars.get(site).get('RXPLANE_MGMT_BRIDGE')
     interfacevlaues = { 'interfacevalue' : interfacevalue , 'interfacelist' : interfacelist}
 
     logger.info("Interface values Created are:: interfacelist :: {}".format(interfacevlaues))
@@ -398,7 +373,7 @@ def Createroute(site,card):
         routevar='NNIGW_ROUTE'
     else:
         routevar='POC_ROUTE'
-    newarr = config.get(site,routevar).split(' ')
+    newarr = FreshLaunchInvVars.get(site).get(routevar).split(' ')
     newvalue=''
     for i in newarr:
         if i == '':
@@ -417,115 +392,116 @@ def Createroute(site,card):
 def CreatePlaneIp(serviceplane):
     logger.info("------------------ Calling CreateplaneIp() ------------------")
     logger.info("Creating IP Map for Plane :: {} ".format(serviceplane))
-    if COMMONPLATFLAG == 'yes':
-        myhash = CreateContainerHash()
-    else:
-        myhash = CreateContainerhashNNIRHEL()
+    # if COMMONPLATFLAG == 'yes':
+    #     myhash = CreateContainerHash()
+    # else:
+    ems_map = CreateEMSIPHash()
 
-    for site in myhash:
-        serviceip = config.get(site,serviceplane).split(':')
-        serviceip1 = serviceip[0]
+    for site in ems_map:
+        serviceip = FreshLaunchInvVars.get(site).get(serviceplane).strip()
+        serviceip1 = serviceip
         newserviceip = ''
         if serviceip1 != '':
-            for card in myhash[site]:
-                myhash[site][card] = str(serviceip1)
+            for card in ems_map[site]:
+                ems_map[site][card] = str(serviceip1)
                 serviceip1 = newipaddress.ip_address(serviceip1) + 1
                 newserviceip = newipaddress.ip_address(serviceip1) + 1
         mylistmap[site].update({ serviceplane : str(serviceip1) })
-    logger.info("Created IP Map for Plane :: {} and the values are :: {}".format(serviceplane,myhash))
-    return myhash
+    logger.info("Created IP Map for Plane :: {} and the values are :: {}".format(serviceplane,ems_map))
+    return ems_map
 
 
 def CreateIpaddress(site,sgid,card):
     logger.info("------------------ Calling CreateIpaddress() ------------------")
-    mysubnet = config.get(site,'OAMPLANE_SUBNET').split('/')
+    mysubnet = FreshLaunchInvVars.get(site).get('OAMPLANE_SUBNET').split('/')
     ipaddrvalue = 'eth1#'+sgid+'/'+mysubnet[1]
 
     if SETUPTYPE.lower() != 'wavelite':
         if serviceplane[site][card] != '':
-            mysubnet = config.get(site,'SERVICEPLANE_SUBNET').split('/')
-            ipaddrvalue = ipaddrvalue+'\n'+'ipaddr'+'='+'eth2#'+serviceplane[site][card]+'/'+mysubnet[1]+'@'+config.get(site,'SERVICEPLANE_GATEWAY')
+            mysubnet = FreshLaunchInvVars.get(site).get('SERVICEPLANE_SUBNET').split('/')
+            ipaddrvalue = ipaddrvalue+'\n'+'ipaddr'+'='+'eth2#'+serviceplane[site][card]+'/'+mysubnet[1]+'@'+FreshLaunchInvVars.get(site).get('SERVICEPLANE_GATEWAY')
         if remoteplane[site][card] != '':
-            mysubnet = config.get(site,'REMOTELOGPLANE_SUBNET').split('/')
+            mysubnet = FreshLaunchInvVars.get(site).get('REMOTELOGPLANE_SUBNET').split('/')
             ipaddrvalue = ipaddrvalue+'\n'+'ipaddr'+'='+'eth3#'+remoteplane[site][card]+'/'+mysubnet[1]
         if rxplane[site][card] != '':
-            mysubnet = config.get(site,'RXPLANE_SUBNET').split('/')
+            mysubnet = FreshLaunchInvVars.get(site).get('RXPLANE_SUBNET').split('/')
             ipaddrvalue = ipaddrvalue+'\n'+'ipaddr'+'='+'eth4#'+rxplane[site][card]+'/'+mysubnet[1]
     return ipaddrvalue
 
 
 
 ################ Create Details For RHELIDM Yaml ##############################
-def CreateRhelidmYml(site,pttid,image,host,sgip,filename):
-    if DEPLOYMENT_PLATFORM_TYPE != 5 and 'NNI' in filename:
-        host = 'NNI' + host
-    ymlint = []
-    rhelidmlist1 = {'name' : QuotedString('RHELIDM'),'sigcardid':'127','dgid':pttid[2:5],'version': '1.0','image':QuotedString(image),'host': QuotedString(host),'pttid':pttid, 'interface' : []}
+# def CreateRhelidmYml(site,pttid,image,host,sgip,filename):
+#     if DEPLOYMENT_PLATFORM_TYPE != 5 and 'NNI' in filename:
+#         host = 'NNI' + host
+#     ymlint = []
+#     rhelidmlist1 = {'name' : QuotedString('RHELIDM'),'sigcardid':'127','dgid':pttid[2:5],'version': '1.0','image':QuotedString(image),'host': QuotedString(host),'pttid':pttid, 'interface' : []}
 
-    ymlinterface = {"interface":"eth1", "ip": sgip,"gateway": config.get(site,'OAMPLANE_GATEWAY'), "broadcast": config.get(site,'OAMPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "oam","ip_type":"phy"}
-    ymlint.append(ymlinterface)
+#     ymlinterface = {"interface":"eth1", "ip": sgip,"gateway": config.get(site,'OAMPLANE_GATEWAY'), "broadcast": config.get(site,'OAMPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "oam","ip_type":"phy"}
+#     ymlint.append(ymlinterface)
 
-    if serviceplane[site][filename] != '':
-        ymlinterface = {"interface":"eth2", "ip": serviceplane[site][filename],"gateway": config.get(site,'SERVICEPLANE_GATEWAY'), "broadcast": config.get(site,'SERVICEPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "service","ip_type":"phy"}
-        ymlint.append(ymlinterface)
-    else:
-        ymlinterface = {"interface":"eth1", "ip": sgip,"gateway": config.get(site,'OAMPLANE_GATEWAY'),"broadcast":config.get(site,'OAMPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "service","ip_type":"phy"}
-        ymlint.append(ymlinterface)
+#     if serviceplane[site][filename] != '':
+#         ymlinterface = {"interface":"eth2", "ip": serviceplane[site][filename],"gateway": config.get(site,'SERVICEPLANE_GATEWAY'), "broadcast": config.get(site,'SERVICEPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "service","ip_type":"phy"}
+#         ymlint.append(ymlinterface)
+#     else:
+#         ymlinterface = {"interface":"eth1", "ip": sgip,"gateway": config.get(site,'OAMPLANE_GATEWAY'),"broadcast":config.get(site,'OAMPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "service","ip_type":"phy"}
+#         ymlint.append(ymlinterface)
 
-    if remoteplane[site][filename] != '':
-        ymlinterface = {"interface":"eth3", "ip": remoteplane[site][filename],"gateway": config.get(site,'REMOTELOGPLANE_GATEWAY'),"broadcast":config.get(site,'REMOTELOGPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "log","ip_type":"phy"}
-        ymlint.append(ymlinterface)
-    else:
-        ymlinterface = {"interface":"eth1", "ip": sgip,"gateway": config.get(site,'OAMPLANE_GATEWAY'),"broadcast":config.get(site,'OAMPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "log","ip_type":"phy"}
-        ymlint.append(ymlinterface)
+#     if remoteplane[site][filename] != '':
+#         ymlinterface = {"interface":"eth3", "ip": remoteplane[site][filename],"gateway": config.get(site,'REMOTELOGPLANE_GATEWAY'),"broadcast":config.get(site,'REMOTELOGPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "log","ip_type":"phy"}
+#         ymlint.append(ymlinterface)
+#     else:
+#         ymlinterface = {"interface":"eth1", "ip": sgip,"gateway": config.get(site,'OAMPLANE_GATEWAY'),"broadcast":config.get(site,'OAMPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "log","ip_type":"phy"}
+#         ymlint.append(ymlinterface)
 
-    if rxplane[site][filename] != '':
-        ymlinterface = {"interface":"eth3", "ip": rxplane[site][filename],"gateway": config.get(site,'RXPLANE_GATEWAY'),"broadcast":config.get(site,'RXPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "rx","ip_type":"phy"}
-        ymlint.append(ymlinterface)
+#     if rxplane[site][filename] != '':
+#         ymlinterface = {"interface":"eth3", "ip": rxplane[site][filename],"gateway": config.get(site,'RXPLANE_GATEWAY'),"broadcast":config.get(site,'RXPLANE_BROADCASTIP'), 'netmask': config.get('GLOBAL','NETMASKIP'), "subnet_type": "rx","ip_type":"phy"}
+#         ymlint.append(ymlinterface)
 
-    if site == 'PRIMARY':
-        rhelidmlist1['interface'] = ymlint
-        prirhelidmlist.append(rhelidmlist1)
-        rhelidmjson1.update({site : prirhelidmlist})
-    if site == 'SECONDARY':
-        rhelidmlist1['interface'] = ymlint
-        secrhelidmlist.append(rhelidmlist1)
-        rhelidmjson1.update({site : secrhelidmlist})
-    if site == 'GEO':
-        rhelidmlist1['interface'] = ymlint
-        georhelidmlist.append(rhelidmlist1)
-        rhelidmjson1.update({site : georhelidmlist})
+#     if site == 'PRIMARY':
+#         rhelidmlist1['interface'] = ymlint
+#         prirhelidmlist.append(rhelidmlist1)
+#         rhelidmjson1.update({site : prirhelidmlist})
+#     if site == 'SECONDARY':
+#         rhelidmlist1['interface'] = ymlint
+#         secrhelidmlist.append(rhelidmlist1)
+#         rhelidmjson1.update({site : secrhelidmlist})
+#     if site == 'GEO':
+#         rhelidmlist1['interface'] = ymlint
+#         georhelidmlist.append(rhelidmlist1)
+#         rhelidmjson1.update({site : georhelidmlist})
         
         
         
 ################ Creating Host Var File ####################################
-def CreateHostVarFile(servertype,tag,host,containerip,pttid,imagefile):
+def CreateHostVarFile(servertype, image, host, containerip, pttid):
     logger.info("------------------ Calling CreateHostVarFile() ------------------")
-    docker_registry = config.get('GLOBAL','DOCKER_REGISTRY')
+    
+    tag = image.split(":")[1]
+    docker_registry = FreshLaunchInvVars.get('GLOBAL').get('DOCKER_REGISTRY')
 
-    if "ipaserver" in servertype:
-        if "ipaserver1" in servertype:
-            IS_MASTER = '1'
-        else:
-            IS_MASTER = '0'
+    # if "ipaserver" in servertype:
+    #     if "ipaserver1" in servertype:
+    #         IS_MASTER = '1'
+    #     else:
+    #         IS_MASTER = '0'
 
-        if DEPLOYMENT_PLATFORM_TYPE == 5:
-            if 'NNIipa' in servertype:
-                newservertype = Constants.hostext['NNI']+servertype[3:]
-            else:
-                newservertype = Constants.hostext['POC']+servertype
-        else:
-            newservertype = servertype
+    #     if DEPLOYMENT_PLATFORM_TYPE == 5:
+    #         if 'NNIipa' in servertype:
+    #             newservertype = Constants.hostext['NNI']+servertype[3:]
+    #         else:
+    #             newservertype = Constants.hostext['POC']+servertype
+    #     else:
+    #         newservertype = servertype
 
-        newhost=newservertype.lstrip('NNI')
-        servertypelist = { 'INIFILE' : '/Software/ProdApplicationInfra/conf/'+servertype+'.ini' ,'CONTAINERNAME' : 'PROJ-'+newhost+'.'+INTERNAL_HOST_DOMAIN+'-'+pttid+'-'+tag,'ansible_ssh_host' : host ,'CONTAINERIP' : containerip,'IS_MASTER' : IS_MASTER,'IMAGEFILE': imagefile,'DOCKERREGISTRY': docker_registry }
+    #     newhost=newservertype.lstrip('NNI')
+    #     servertypelist = { 'INIFILE' : '/Software/ProdApplicationInfra/conf/'+servertype+'.ini' ,'CONTAINERNAME' : 'PROJ-'+newhost+'.'+INTERNAL_HOST_DOMAIN+'-'+pttid+'-'+tag,'ansible_ssh_host' : host ,'CONTAINERIP' : containerip,'IS_MASTER' : IS_MASTER, 'DOCKERREGISTRY': docker_registry, 'IMAGE': image }
         
-        
-        logger.info("Content of Host_var file for {} is {}".format(servertype,servertypelist))
-    else:
-        servertypelist = { 'INIFILE' : '/Software/ProdApplicationInfra/conf/'+servertype+'.ini', 'ANS' : '/Software/ProdApplicationInfra/ans/'+Ansfile,'CONTAINERNAME' : 'PROJ-'+servertype+'-'+pttid+'-'+tag,'ansible_ssh_host' : host,'CONTAINERIP':containerip,'INSTALLATIONTYPE': InstallationType,'IMAGEFILE': imagefile,'DOCKERREGISTRY': docker_registry }
-        logger.info("Content of Host_var file for {} is {}".format(servertype,servertypelist))
-        
+    #     logger.info("Content of Host_var file for {} is {}".format(servertype,servertypelist))
+    # else:
+    servertypelist = { 'INIFILE' : servertype+'.ini', 'ANS' : Ansfile, 'CONTAINERNAME' : 'PROJ-'+servertype+'-'+pttid+'-'+tag,'ansible_ssh_host' : host,'CONTAINERIP':containerip,'INSTALLATIONTYPE': int(InstallationType), 'DOCKERREGISTRY': docker_registry, 'IMAGE': image }
+    logger.info("Content of Host_var file for {} is {}".format(servertype,servertypelist))
+    
         
     return servertypelist
     # try:
@@ -607,7 +583,6 @@ def convert_listarray_to_json(list_array, logger):
 ################ Creating Container INI File ##############
 def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
     logger.info("------------------ Calling CreateContainerINI() ------------------")
-    AUTOMATE_DOCKER_PULL=config.get('GLOBAL', 'AUTOMATE_DOCKER_PULL')
 
     if 'EMS'in Servertype:
         servertype = 'ConfigMgmt Server'
@@ -632,59 +607,60 @@ def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
 
     if ptttype == '1':
         for chid in VM_CHASSIS[site].keys():
-            if Servertype in VM_CHASSIS[site][chid]['CARDS']:
+            if 'EMSPRI' in VM_CHASSIS[site][chid]['CARDS'] or 'EMSSEC' in VM_CHASSIS[site][chid]['CARDS'] or 'EMSGEO' in VM_CHASSIS[site][chid]['CARDS']:
                 logger.info("Servertype :: {}, SITE :: {} is present in CHASSISID :: {}".format(Servertype,site,chid))
                 CHASSISID=chid
                 CHASSIS_HOSTNAME = 'VM_CHASSIS_'+str(CHASSISID)+'_OAMVMIP'
                 break
-
+            
     if ptttype == '2':
         for chid in NNIGW_VM_CHASSIS[site].keys():
-            if Servertype in NNIGW_VM_CHASSIS[site][chid]['CARDS']:
+            if 'EMSNNIPRI' in NNIGW_VM_CHASSIS[site][chid]['CARDS'] or 'EMSNNIGEO' in NNIGW_VM_CHASSIS[site][chid]['CARDS']:
                 logger.info("Servertype :: {}, SITE :: {} is present in CHASSISID :: {}".format(Servertype,site,chid))
                 CHASSISID=chid
                 CHASSIS_HOSTNAME = 'NNIGW_VM_CHASSIS_'+str(CHASSISID)+'_OAMVMIP'
                 break
 
 
-    ipachassisid = []
-    if Servertype == 'RHELIDM':
-        for chid in VM_CHASSIS[site].keys():
-            if Servertype in VM_CHASSIS[site][chid]['CARDS']:
-                ipachassisid.append(chid)
+    # ipachassisid = []
+    # if Servertype == 'RHELIDM':
+    #     for chid in VM_CHASSIS[site].keys():
+    #         if Servertype in VM_CHASSIS[site][chid]['CARDS']:
+    #             ipachassisid.append(chid)
 
-        if filename in ['ipaserver1','ipaserver3']:
-            CHASSISID=min(ipachassisid)
-        else:
-            CHASSISID=max(ipachassisid)
+    #     if filename in ['ipaserver1','ipaserver3']:
+    #         CHASSISID=min(ipachassisid)
+    #     else:
+    #         CHASSISID=max(ipachassisid)
 
 
-        CHASSIS_HOSTNAME = 'VM_CHASSIS_'+str(CHASSISID)+'_OAMVMIP'
+    #     CHASSIS_HOSTNAME = 'VM_CHASSIS_'+str(CHASSISID)+'_OAMVMIP'
 
-        if DEPLOYMENT_PLATFORM_TYPE == 5:
-            IPASERVERCHASSIS[Constants.hostext['POC']+filename]=CHASSISID
-        else:
-            IPASERVERCHASSIS[filename]=CHASSISID
+    #     if DEPLOYMENT_PLATFORM_TYPE == 5:
+    #         IPASERVERCHASSIS[Constants.hostext['POC']+filename]=CHASSISID
+    #     else:
+    #         IPASERVERCHASSIS[filename]=CHASSISID
 
-    ipachassisid = []
-    if Servertype == 'NNIRHELIDM':
-        for chid in NNIGW_VM_CHASSIS[site].keys():
-            if Servertype in NNIGW_VM_CHASSIS[site][chid]['CARDS']:
-                ipachassisid.append(chid)
+    # ipachassisid = []
+    # if Servertype == 'NNIRHELIDM':
+    #     for chid in NNIGW_VM_CHASSIS[site].keys():
+    #         if Servertype in NNIGW_VM_CHASSIS[site][chid]['CARDS']:
+    #             ipachassisid.append(chid)
 
-        if filename in ['NNIipaserver1','NNIipaserver3']:
-            CHASSISID=min(ipachassisid)
-        else:
-            CHASSISID=max(ipachassisid)
+    #     if filename in ['NNIipaserver1','NNIipaserver3']:
+    #         CHASSISID=min(ipachassisid)
+    #     else:
+    #         CHASSISID=max(ipachassisid)
 
-        CHASSIS_HOSTNAME = 'NNIGW_VM_CHASSIS_'+str(CHASSISID)+'_OAMVMIP'
+    #     CHASSIS_HOSTNAME = 'NNIGW_VM_CHASSIS_'+str(CHASSISID)+'_OAMVMIP'
 
-        if DEPLOYMENT_PLATFORM_TYPE == 5:
-            NNIIPASERVERCHASSIS[Constants.hostext['NNI']+filename.lstrip('NNI')]=CHASSISID
-        else:
-            NNIIPASERVERCHASSIS[filename] = CHASSISID
+    #     if DEPLOYMENT_PLATFORM_TYPE == 5:
+    #         NNIIPASERVERCHASSIS[Constants.hostext['NNI']+filename.lstrip('NNI')]=CHASSISID
+    #     else:
+    #         NNIIPASERVERCHASSIS[filename] = CHASSISID
 
-    rhelidminstance = POCrhelidminstance
+    #TODO: need to fetch this from RhelIDM Inventory
+    rhelidminstance = [{"IP": "10.2.13.14", "Host": "ipaserver1.msidm.com", "IS_SERVER_NODE": 1}, {"IP": "10.2.13.15", "Host": "ipaserver2.msidm.com", "IS_SERVER_NODE": 0}, {"IP": "10.2.13.67", "Host": "ipaserver3.msidm.com", "IS_SERVER_NODE": 0}, {"IP": "10.2.13.68", "Host": "ipaserver4.msidm.com", "IS_SERVER_NODE": 0}]
 
     if COMMONPLATFLAG == 'no' and ptttype == '2':
         rhelidminstance = NNIrhelidminstance
@@ -699,46 +675,49 @@ def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
         newhost=newhost.lstrip('NNI')
     else:
         newhost=host.lstrip('NNI')
-    inilist = {'DEPLOYMENT_REDUNDANCY_TYPE':config.get('GLOBAL','DEPLOYMENT_REDUNDANCY_TYPE'),'INTERNAL_HOST_DOMAIN':config.get('GLOBAL','INTERNAL_HOST_DOMAIN'),'image': image,'SERVERTYPE': servertype,'host':newhost,'pttsvrid':pttid,'ipaddr': ipaddrval,'interface' :interfaceval['interfacevalue'],'SIGNALINGCARDIP':sgip,'HOSTIP': config.get(site,CHASSIS_HOSTNAME),'RHELIDM_INSTANCE_INFO': json.dumps(rhelidminstance,separators=(',', ':'))}
+        
+    inilist = {'DEPLOYMENT_REDUNDANCY_TYPE':FreshLaunchInvVars['GLOBAL']['DEPLOYMENT_REDUNDANCY_TYPE'],'INTERNAL_HOST_DOMAIN':FreshLaunchInvVars['GLOBAL']['INTERNAL_HOST_DOMAIN'],'image': image,'SERVERTYPE': servertype,'host':newhost,'pttsvrid':pttid,'ipaddr': ipaddrval,'interface' :interfaceval['interfacevalue'],'SIGNALINGCARDIP':sgip,'HOSTIP': FreshLaunchInvVars[site][CHASSIS_HOSTNAME], 'RHELIDM_INSTANCE_INFO': json.dumps(rhelidminstance,separators=(',', ':'))}
     if SETUPTYPE.lower() != 'wavelite':
         inilist['route'] = route
 
     logger.info("List Formed with Replaced Values in template are ::{}".format(inilist))
     list_array = ReadTemplate(Constants.Usertemplatefile)
-    if "ipaserver" in filename:
-        CreateRhelidmYml(site,pttid,image,inilist['host'],sgip,filename)
-        if "ipaserver1" in filename:
-            list_array.append('IS_SERVER_NODE=1')
-        else:
-            list_array.append('IS_SERVER_NODE=0')
+    # if "ipaserver" in filename:
+    #     CreateRhelidmYml(site,pttid,image,inilist['host'],sgip,filename)
+    #     if "ipaserver1" in filename:
+    #         list_array.append('IS_SERVER_NODE=1')
+    #     else:
+    #         list_array.append('IS_SERVER_NODE=0')
 
-    if Servertype == 'EMS':
-        POCVMEMSLIST.append(config.get(site,CHASSIS_HOSTNAME))
-        POCPRIEMSVM.append(config.get('PRIMARY',CHASSIS_HOSTNAME))
-        if inilist['HOSTIP'] not in emshosts and AUTOMATE_DOCKER_PULL == 'yes':
-            imagefile = f"{Constants.Relative_path}"+filename+".dat"
-            with open(imagefile, "w") as f:
-                f.write(f"EMS:0-{image}\n")
-            emshosts.append(inilist['HOSTIP'])
-        else:
-            imagefile = "empty"
-    if Servertype == 'EMSNNI':
-        NNIVMEMSLIST.append(config.get(site,CHASSIS_HOSTNAME))
-        GWPRIEMSVM.append(config.get('PRIMARY',CHASSIS_HOSTNAME))
-        if AUTOMATE_DOCKER_PULL == 'yes':
-            imagefile = f"{Constants.Relative_path}"+filename+".dat"
-            with open(imagefile, "w") as f:
-                f.write(f"EMS:0-{image}\n")
-        else:
-            imagefile = "empty"
-    if 'RHELIDM' in Servertype:
-        if inilist['HOSTIP'] not in ipahosts and AUTOMATE_DOCKER_PULL == 'yes':
-            imagefile = f"{Constants.Relative_path}"+filename+".dat"
-            with open(imagefile, "w") as f:
-                f.write(f"RHELIDM:127-{image}\n")
-            ipahosts.append(inilist['HOSTIP'])
-        else:
-            imagefile = "empty"
+    if ptttype == '1':
+        POCVMEMSLIST.append(FreshLaunchInvVars[site][CHASSIS_HOSTNAME])
+        POCPRIEMSVM.append(FreshLaunchInvVars[Constants.SITE1][CHASSIS_HOSTNAME])
+        # if inilist['HOSTIP'] not in emshosts and AUTOMATE_DOCKER_PULL == 'yes':
+        #     imagefile = f"{Constants.Relative_path}"+filename+".dat"
+        #     with open(imagefile, "w") as f:
+        #         f.write(f"EMS:0-{image}\n")
+        #     emshosts.append(inilist['HOSTIP'])
+        # else:
+        #     imagefile = "empty"
+            
+    if ptttype == '2':
+        NNIVMEMSLIST.append(FreshLaunchInvVars[site][CHASSIS_HOSTNAME])
+        GWPRIEMSVM.append(FreshLaunchInvVars[Constants.SITE1][CHASSIS_HOSTNAME])
+        # if AUTOMATE_DOCKER_PULL == 'yes':
+        #     imagefile = f"{Constants.Relative_path}"+filename+".dat"
+        #     with open(imagefile, "w") as f:
+        #         f.write(f"EMS:0-{image}\n")
+        # else:
+        #     imagefile = "empty"
+            
+    # if 'RHELIDM' in Servertype:
+    #     if inilist['HOSTIP'] not in ipahosts and AUTOMATE_DOCKER_PULL == 'yes':
+    #         imagefile = f"{Constants.Relative_path}"+filename+".dat"
+    #         with open(imagefile, "w") as f:
+    #             f.write(f"RHELIDM:127-{image}\n")
+    #         ipahosts.append(inilist['HOSTIP'])
+    #     else:
+    #         imagefile = "empty"
 
     for param in inilist.keys():
         index = list_array.index(param+'=##'+param+'##')
@@ -752,9 +731,8 @@ def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
     # Convert the list array to JSON format
     ini_vars = convert_listarray_to_json(list_array, logger)
 
-    image = inilist['image'].split(":")
     logger.info("Creating HostVar file For ::{}".format(filename))
-    hostvars = CreateHostVarFile(filename,image[1],inilist['HOSTIP'],inilist['SIGNALINGCARDIP'],pttid,imagefile)
+    hostvars = CreateHostVarFile(filename, inilist['image'], inilist['HOSTIP'], inilist['SIGNALINGCARDIP'], pttid)
 
     # Combine ini_vars and hostvars into a single dictionary
     combined_vars = {**hostvars, **ini_vars}
@@ -763,26 +741,25 @@ def CreateContainerINI(site,Servertype,filename,host,sgip,pttid,image,ptttype):
     return combined_vars
     
     
-    
-    
-def update_redundant_ems_ipaddress(site, myvalues, ipmapjson, mycard, DEPLOYMENTTYPE):
+def update_redundant_ems_ipaddress(site, myvalues, ipmapjson, mycard, emscardname, DEPLOYMENTTYPE):
 
     if DEPLOYMENTTYPE == '1':
-        if site == 'PRIMARY':
-            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson['GEO'][mycard])
-            myvalues.append('SECONDARYEMSIPADDRESS:' + ipmapjson['SECONDARY'][mycard])
-        elif site == 'SECONDARY':
-            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson['GEO'][mycard])
-            myvalues.append('SECONDARYEMSIPADDRESS:' + ipmapjson['PRIMARY'][mycard])
+        # Deployement type 1 is supported only for POC deployements
+        if site == Constants.SITE1 and emscardname == 'EMSPRI':
+            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson[Constants.SITE2]['EMSGEO'])
+            myvalues.append('SECONDARYEMSIPADDRESS:' + ipmapjson[Constants.SITE1]['EMSSEC'])
+        elif site == Constants.SITE1 and emscardname == 'EMSSEC':
+            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson[Constants.SITE2]['EMSGEO'])
+            myvalues.append('SECONDARYEMSIPADDRESS:' + ipmapjson[Constants.SITE1]['EMSPRI'])
         else:
-            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson['PRIMARY'][mycard])
-            myvalues.append('SECONDARYEMSIPADDRESS:' + ipmapjson['SECONDARY'][mycard])
+            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson[Constants.SITE1]['EMSPRI'])
+            myvalues.append('SECONDARYEMSIPADDRESS:' + ipmapjson[Constants.SITE1]['EMSSEC'])
 
     elif DEPLOYMENTTYPE == '2':
-        if site == 'PRIMARY':
-            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson['GEO'][mycard])
+        if site == Constants.SITE1 and emscardname == f'{mycard}PRI':
+            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson[Constants.SITE2][f'{mycard}GEO'])
         else:
-            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson['PRIMARY'][mycard])
+            myvalues.append('GEOEMSIPADDRESS:' + ipmapjson[Constants.SITE1][f'{mycard}PRI'])
 
 
 
@@ -794,44 +771,46 @@ def CreateAnswerFile(site,filename,pttsystemtype,installationtype,emscardname,si
     myinterfacelist = Createinterface(site)
     aliasinterface,aliasipaddress,aliasbroadcast,aliasnetmask = '','','',''
     if pttsystemtype == '2':
-        path = config.get('GLOBAL','NNI_LICENSE_PATH')
-        custname = config.get('GLOBAL','NNI_LICENSECUSTOMERNAME')
-        custpasswd = config.get('GLOBAL','NNI_LICENSEKEYPASSWORD')
+        path = FreshLaunchInvVars['GLOBAL']['NNI_LICENSE_PATH']
+        custname = FreshLaunchInvVars['GLOBAL']['NNI_LICENSECUSTOMERNAME']
+        custpasswd = FreshLaunchInvVars['GLOBAL']['NNI_LICENSEKEYPASSWORD']
     if pttsystemtype == '1':
-        path = config.get('GLOBAL','POC_LICENSE_PATH')
-        custname = config.get('GLOBAL','POC_LICENSECUSTOMERNAME')
-        custpasswd = config.get('GLOBAL','POC_LICENSEKEYPASSWORD')
-    if pttsystemtype == '2' and serviceplane[site]['EMSNNI'] != '':
-        serviceplaneip = serviceplane[site]['EMSNNI']
-    elif pttsystemtype == '1' and serviceplane[site]['EMS'] != '':
-        serviceplaneip = serviceplane[site]['EMS']
+        path = FreshLaunchInvVars['GLOBAL']['POC_LICENSE_PATH']
+        custname = FreshLaunchInvVars['GLOBAL']['POC_LICENSECUSTOMERNAME']
+        custpasswd = FreshLaunchInvVars['GLOBAL']['POC_LICENSEKEYPASSWORD']
+        
+    if pttsystemtype == '2' and serviceplane[site][emscardname] != '':
+        serviceplaneip = serviceplane[site][emscardname]
+    elif pttsystemtype == '1' and serviceplane[site][emscardname] != '':
+        serviceplaneip = serviceplane[site][emscardname]
     else:
         serviceplaneip = signalingip
+        
     if DEPLOYMENTTYPE == '1' or DEPLOYMENTTYPE == '4':
         #aliasinterface = myinterfacelist['interfacelist']
         aliasinterface = 'eth1~1'
         #aliasipaddress = signalingip
         aliasipaddress = mylistmap[site]['oamplaneip']
 
-        if site == 'PRIMARY':
+        if site == Constants.SITE1 and emscardname == 'EMSPRI':
             newaliasip = newipaddress.ip_address(aliasipaddress) + 1
             mylistmap[site].update({ 'oamplaneip' : str(newaliasip) })
 
-        aliasbroadcast = config.get(site,'OAMPLANE_BROADCASTIP')
-        aliasnetmask = config.get('GLOBAL','NETMASKIP')
+        aliasbroadcast = FreshLaunchInvVars[site]['OAMPLANE_BROADCASTIP']
+        aliasnetmask = FreshLaunchInvVars['GLOBAL']['NETMASKIP']
 
-        if site == 'PRIMARY':
+        if site == Constants.SITE1 and (emscardname in ['EMSPRI','EMSNNIPRI']):
             ALIASIP['EMS'] = aliasipaddress
 
-        if site == 'SECONDARY':
+        if site == Constants.SITE1 and emscardname == 'EMSSEC':
             aliasipaddress = ALIASIP['EMS']
-        elif site == 'GEO' or pttsystemtype == '2':
+        elif (site == Constants.SITE2 and emscardname == 'EMSGEO') or pttsystemtype == '2':
             aliasipaddress = ''
             aliasinterface = ''
             aliasbroadcast = ''
             aliasnetmask = ''
 
-    newdeployment = config.get('GLOBAL','DEPLOYMENT_REDUNDANCY_TYPE')
+    newdeployment = FreshLaunchInvVars['GLOBAL']['DEPLOYMENT_REDUNDANCY_TYPE']
 
     if pttsystemtype == '2' and newdeployment == '1':
         newdeployment = '2'
@@ -843,22 +822,21 @@ def CreateAnswerFile(site,filename,pttsystemtype,installationtype,emscardname,si
         elif pttsystemtype == '2':
             anspttsystemtype = '4'
 
-    waveliteanslist = {'INSTALLATIONTYPE':installationtype ,'PTTSYSTEMTYPE':anspttsystemtype,'DEPLOYMENT_REDUNDANCY_TYPE':newdeployment,'EMSCHASSISNAME':filename+'_mgmt','CHASSISLOCATION':config.get('GLOBAL','CHASSISLOCATION'),'CHASSISZIPCODE':config.get('GLOBAL','CHASSISZIPCODE'),'CHASSISCITY':config.get('GLOBAL','CHASSISCITY'),'CARRIERID':config.get('GLOBAL','CARRIERID'),'COUNTRYCODE':config.get('GLOBAL','COUNTRYCODE'),'EMSCARDNAME':emscardname,'LOCALEMSIPADDRESS': signalingip ,'CMMIPADDRESS': signalingip ,'POCINTERFACEIPADDRESS': signalingip ,'COMMUNICATIONINTERFACEIP': signalingip ,'SERVICEPLANEIPADDRESSES': serviceplaneip , 'DEPLOYMENTTYPE' : config.get('GLOBAL','DEPLOYMENT_TYPE'), 'INTERFACELIST' : myinterfacelist['interfacelist'],'ALIASINTERFACE':aliasinterface, 'ALIASIPADDRESS': aliasipaddress,'ALIASBROADCASTIPADDRESS' : aliasbroadcast, 'ALIASNETMASK' : aliasnetmask,'LICENSEKEYLOCATION': path ,'LICENSECUSTOMERNAME': custname, 'LICENSEKEYPASSWORD': custpasswd, 'DEPLOYMENT_PLATFORM_TYPE': config.get('GLOBAL','DEPLOYMENT_PLATFORM_TYPE'), 'INTERNAL_HOST_DOMAIN': config.get('GLOBAL','INTERNAL_HOST_DOMAIN'),'PKI_ORGANISATION': config.get('GLOBAL','INTERNAL_HOST_DOMAIN')}
+    waveliteanslist = {'INSTALLATIONTYPE':installationtype ,'PTTSYSTEMTYPE':anspttsystemtype,'DEPLOYMENT_REDUNDANCY_TYPE':newdeployment,'EMSCHASSISNAME':filename+'_mgmt','CHASSISLOCATION':FreshLaunchInvVars['GLOBAL']['CHASSISLOCATION'],'CHASSISZIPCODE':FreshLaunchInvVars['GLOBAL']['CHASSISZIPCODE'],'CHASSISCITY':FreshLaunchInvVars['GLOBAL']['CHASSISCITY'],'CARRIERID':FreshLaunchInvVars['GLOBAL']['CARRIERID'],'COUNTRYCODE':FreshLaunchInvVars['GLOBAL']['COUNTRYCODE'],'EMSCARDNAME':emscardname,'LOCALEMSIPADDRESS': signalingip ,'CMMIPADDRESS': signalingip ,'POCINTERFACEIPADDRESS': signalingip ,'COMMUNICATIONINTERFACEIP': signalingip ,'SERVICEPLANEIPADDRESSES': serviceplaneip , 'DEPLOYMENTTYPE' : FreshLaunchInvVars['GLOBAL']['DEPLOYMENT_TYPE'], 'INTERFACELIST' : myinterfacelist['interfacelist'],'ALIASINTERFACE':aliasinterface, 'ALIASIPADDRESS': aliasipaddress,'ALIASBROADCASTIPADDRESS' : aliasbroadcast, 'ALIASNETMASK' : aliasnetmask,'LICENSEKEYLOCATION': path ,'LICENSECUSTOMERNAME': custname, 'LICENSEKEYPASSWORD': custpasswd, 'DEPLOYMENT_PLATFORM_TYPE': FreshLaunchInvVars['GLOBAL']['DEPLOYMENT_PLATFORM_TYPE'], 'INTERNAL_HOST_DOMAIN': FreshLaunchInvVars['GLOBAL']['INTERNAL_HOST_DOMAIN'],'PKI_ORGANISATION': FreshLaunchInvVars['GLOBAL']['INTERNAL_HOST_DOMAIN']}
     logger.info("Answer File Content after Replacing actual values in template is{}".format(waveliteanslist))
     if pttsystemtype == '2':
         mycard = 'EMSNNI'
         Nniiplist.append(signalingip)
-        myvalues.append('DOCKERREGISTRYIPADDRESS:'+config.get('GLOBAL','DOCKERREGISTRYIPADDRESS'))
-        myvalues.append('DOCKERREGISTRYDOMAIN:'+config.get('GLOBAL','DOCKERREGISTRYDOMAIN'))
+        myvalues.append('DOCKERREGISTRYIPADDRESS:'+FreshLaunchInvVars['GLOBAL']['DOCKERREGISTRYIPADDRESS'])
+        myvalues.append('DOCKERREGISTRYDOMAIN:'+FreshLaunchInvVars['GLOBAL']['DOCKERREGISTRYDOMAIN'])
         if COMMONPLATFLAG == 'yes':
-            myvalues.append('CONSUL_AGENT_TOKEN:'+config.get('GLOBAL','CONSUL_AGENT_TOKEN'))
-            myvalues.append('CONSUL_LOCAL_SERVERS:'+config.get(site,'CONSUL_LOCAL_SERVERS'))
-
+            myvalues.append('CONSUL_AGENT_TOKEN:'+FreshLaunchInvVars['GLOBAL']['CONSUL_AGENT_TOKEN'])
+            myvalues.append('CONSUL_LOCAL_SERVERS:'+FreshLaunchInvVars[site]['CONSUL_LOCAL_SERVERS'])
     else:
         mycard = 'EMS'
         Emsiplist.append(signalingip)
 
-    update_redundant_ems_ipaddress(site, myvalues, ipmapjson, mycard, DEPLOYMENTTYPE)
+    update_redundant_ems_ipaddress(site, myvalues, ipmapjson, mycard, emscardname, DEPLOYMENTTYPE)
     
     for param in waveliteanslist.keys():
         index = myvalues.index(param+':'+'##'+param+'##')
@@ -911,31 +889,31 @@ def validate_license_file():
     This function checks if the user has specified a valid license file in valid license path
     """
     if SYSTEMTYPE.lower() == 'poc':
-        return validate_license_file_checks(config.get('GLOBAL', 'POC_LICENSE_PATH'))
+        return validate_license_file_checks(FreshLaunchInvVars['GLOBAL']['POC_LICENSE_PATH'])
     elif SYSTEMTYPE.lower() == 'nnigw':
-        return validate_license_file_checks(config.get('GLOBAL', 'NNI_LICENSE_PATH'))
+        return validate_license_file_checks(FreshLaunchInvVars['GLOBAL']['NNI_LICENSE_PATH'])
     else:
         # if not the other two, then SYSTEMTYPE.lower() == 'poc_nnigw'
-        return validate_license_file_checks(config.get('GLOBAL', 'POC_LICENSE_PATH')) and validate_license_file_checks(config.get('GLOBAL', 'NNI_LICENSE_PATH'))
+        return validate_license_file_checks(FreshLaunchInvVars['GLOBAL']['POC_LICENSE_PATH']) and validate_license_file_checks(FreshLaunchInvVars['GLOBAL']['NNI_LICENSE_PATH'])
 
 
-def validate_required_idap_cards(allcards: List[str], cluster: str, idap_light_flag: int):
-    try:
-        for idapcard in Constants.IDAP_LIGHT_CARDS[idap_light_flag]:
-            if idapcard not in allcards:
-              raise Exception(f'Card {idapcard} is not available in {cluster}. Required for INSTALL_IDAP_LIGHT = {idap_light_flag}.')
+# def validate_required_idap_cards(allcards: List[str], cluster: str, idap_light_flag: int):
+#     try:
+#         for idapcard in Constants.IDAP_LIGHT_CARDS[idap_light_flag]:
+#             if idapcard not in allcards:
+#               raise Exception(f'Card {idapcard} is not available in {cluster}. Required for INSTALL_IDAP_LIGHT = {idap_light_flag}.')
 
-        if idap_light_flag == 0:
-            if allcards.count('IDAPHadoop') != 2:
-                raise Exception(f'Two IDAPHadoop Cards should be present. One for NameNode and One for DataNode')
+#         if idap_light_flag == 0:
+#             if allcards.count('IDAPHadoop') != 2:
+#                 raise Exception(f'Two IDAPHadoop Cards should be present. One for NameNode and One for DataNode')
 
-        elif idap_light_flag == 1:
-            if 'IDAPHadoop' in allcards:
-                raise Exception(f'IDAPHadoop card should not be present when INSTALL_IDAP_LIGHT=1')
+#         elif idap_light_flag == 1:
+#             if 'IDAPHadoop' in allcards:
+#                 raise Exception(f'IDAPHadoop card should not be present when INSTALL_IDAP_LIGHT=1')
 
-    except Exception as e:
-        logger.error(e)
-        sys.exit(1)
+#     except Exception as e:
+#         logger.error(e)
+#         sys.exit(1)
         
 
 def evaluate_idap_cards(system_type: str, cards: List[str], cluster, idap_light_flag):
@@ -972,8 +950,8 @@ def VerifyMasterInputFile():
     '''
 
     dictionary = {}
-    CardList = {}
-    NNIGWCardList ={}
+    # CardList = {}
+    # NNIGWCardList ={}
 
     for section in config.sections():
         dictionary[section] = {}
@@ -1031,110 +1009,113 @@ def VerifyMasterInputFile():
         logger.error("DEPLOYMENTTYPE 1 is not supported for SETUPTYPE wavelite. Please check and update master input file with proper values.")
         sys.exit(1)
 
-    MsterInKey=['PRIMARY','GEO']
-    if DEPLOYMENTTYPE == '1':
-        MsterInKey=['PRIMARY','SECONDARY','GEO']
-    elif DEPLOYMENTTYPE == '3':
-        MsterInKey=['PRIMARY']
-    elif DEPLOYMENTTYPE == '4':
-        MsterInKey=['PRIMARY','SECONDARY']
+    # sites=['PRIMARY','GEO']
+    # if DEPLOYMENTTYPE == '1':
+    #     sites=['PRIMARY','SECONDARY','GEO']
+    # elif DEPLOYMENTTYPE == '3':
+    #     sites=['PRIMARY']
+    # elif DEPLOYMENTTYPE == '4':
+    #     sites=['PRIMARY','SECONDARY']
 
-    for key in MsterInKey:
+    sites = [section for section in config.sections() if section not in ['GLOBAL']]
+
+    # Validating Mandatory parameters in all Sites Sheet in Master Input File
+    for site in sites:
         for mankey in MandParams:
-            if key == 'SECONDARY' and mankey in ['NNIGW_TOTAL_NO_CHASSIS','NNIGW_ROUTE','CONSUL_LOCAL_SERVERS']:
+            if site not in [Constants.SITE1, Constants.SITE2] and mankey in ['NNIGW_TOTAL_NO_CHASSIS','NNIGW_ROUTE','CONSUL_LOCAL_SERVERS']:
                 continue
-            if mankey not in dictionary[key]:
-                logger.error("{} Section in master input Mandatory key {} not exists. Please check and update master input file".format(key,mankey))
+            if mankey not in dictionary[site]:
+                logger.error("{} Section in master input Mandatory key {} not exists. Please check and update master input file".format(site,mankey))
                 sys.exit(1)
 
-            if dictionary[key][mankey] == '' or not dictionary[key][mankey]:
-                logger.error("{} Section in master input {} :: {} is empty. Please check and update master input file".format(key,mankey,dictionary[key][mankey]))
+            if dictionary[site][mankey] == '' or not dictionary[site][mankey]:
+                logger.error("{} Section in master input {} :: {} is empty. Please check and update master input file".format(site,mankey,dictionary[site][mankey]))
                 sys.exit(1)
         if 'poc' in SYSTEMTYPE.lower():
-            for i in range(0,int(dictionary[key]['TOTAL_NO_CHASSIS'])):
-                i = i +1
-                for j in ['HOSTIP','SERVICEVMIP','OAMVMIP','CARDLIST']:
-                    var='VM_CHASSIS_'+str(i)+'_'+j
-                    if var not in dictionary[key]:
-                        logger.error("{} Section in master input Mandatory key {} not exists. Please check and update master input file".format(key,var))
+            for chasssis_num in range(0,int(dictionary[site]['TOTAL_NO_CHASSIS'])):
+                chasssis_num = chasssis_num + 1
+                for param in ['HOSTIP','SERVICEVMIP','OAMVMIP','CARDLIST']:
+                    paramname='VM_CHASSIS_'+str(chasssis_num)+'_'+param
+                    if paramname not in dictionary[site]:
+                        logger.error("{} Section in master input Mandatory key {} not exists. Please check and update master input file".format(site,paramname))
                         sys.exit(1)
 
-                    if dictionary[key][var] == '' or not dictionary[key][var]:
-                        logger.error("{} Section in master input {} :: {} is empty. Please check and update master input file".format(key,var,dictionary[key][var]))
+                    if dictionary[site][paramname] == '' or not dictionary[site][paramname]:
+                        logger.error("{} Section in master input {} :: {} is empty. Please check and update master input file".format(site,paramname,dictionary[site][paramname]))
                         sys.exit(1)
 
-                newkey=key
-                if key == 'SECONDARY':
-                    newkey = 'PRIMARY'
-                if newkey not in CardList.keys():
-                    CardList[newkey] = []
-                CardList[newkey].extend(dictionary[key]['VM_CHASSIS_'+str(i)+'_CARDLIST'].split(','))
+                # newkey=site
+                # if site == 'SECONDARY':
+                #     newkey = 'PRIMARY'
+                # if newkey not in CardList.keys():
+                #     CardList[newkey] = []
+                # CardList[newkey].extend(dictionary[site]['VM_CHASSIS_'+str(chasssis_num)+'_CARDLIST'].split(','))
 
-                for cluster, poc_cards in CardList.items():
-                    if 'SYNCGW' in poc_cards:
-                        logger.error("SYNCGW and SYNCGWREP Containers are not supported from 12.3.1.2.Please remove the cards from masterinput file.\n")
-                        print("SYNCGW and SYNCGWREP Containers are not supported from 12.3.1.2.Please remove the cards from masterinput file.\n")
-                        sys.exit(1)
+                # for poc_cards in CardList.values():
+                #     if 'SYNCGW' in poc_cards:
+                #         logger.error("SYNCGW and SYNCGWREP Containers are not supported from 12.3.1.2.Please remove the cards from masterinput file.\n")
+                #         print("SYNCGW and SYNCGWREP Containers are not supported from 12.3.1.2.Please remove the cards from masterinput file.\n")
+                #         sys.exit(1)
 
 
         if 'nnigw' in SYSTEMTYPE.lower():
-            if key == 'SECONDARY':
-                continue
-            for i in range(0,int(dictionary[key]['NNIGW_TOTAL_NO_CHASSIS'])):
-                i = i +1
-                for j in ['HOSTIP','SERVICEVMIP','OAMVMIP','CARDLIST']:
-                    var='NNIGW_VM_CHASSIS_'+str(i)+'_'+j
-                    if var not in dictionary[key]:
-                        logger.error("{} Section in master input Mandatory key {} not exists. Please check and update master input file".format(key,var))
+            # if site == 'SECONDARY':
+            #     continue
+            for chass_num in range(0,int(dictionary[site]['NNIGW_TOTAL_NO_CHASSIS'])):
+                chass_num = chass_num + 1
+                for param in ['HOSTIP','SERVICEVMIP','OAMVMIP','CARDLIST']:
+                    paramname='NNIGW_VM_CHASSIS_'+str(chass_num)+'_'+param
+                    if paramname not in dictionary[site]:
+                        logger.error("{} Section in master input Mandatory key {} not exists. Please check and update master input file".format(site,paramname))
                         sys.exit(1)
 
-                    if dictionary[key][var] == '' or not dictionary[key][var]:
-                        logger.error("{} Section in master input {} :: {} is empty. Please check and update master input file".format(key,var,dictionary[key][var]))
+                    if dictionary[site][paramname] == '' or not dictionary[site][paramname]:
+                        logger.error("{} Section in master input {} :: {} is empty. Please check and update master input file".format(site,paramname,dictionary[site][paramname]))
                         sys.exit(1)
 
-                newkey=key
-                if key == 'SECONDARY':
-                    newkey = 'PRIMARY'
-                if newkey not in NNIGWCardList.keys():
-                    NNIGWCardList[newkey] = []
-                NNIGWCardList[newkey].extend(dictionary[key]['NNIGW_VM_CHASSIS_'+str(i)+'_CARDLIST'].split(','))
+                # newkey=site
+                # if site == 'SECONDARY':
+                #     newkey = 'PRIMARY'
+                # if newkey not in NNIGWCardList.keys():
+                #     NNIGWCardList[newkey] = []
+                # NNIGWCardList[newkey].extend(dictionary[site]['NNIGW_VM_CHASSIS_'+str(chass_num)+'_CARDLIST'].split(','))
 
 
-    if 'poc' in SYSTEMTYPE.lower():
-        for key in CardList.keys():
-            consulcount=CardList[key].count('ConsulServer')
-            rmqcount=CardList[key].count('RMQ')
-            vaultcount=CardList[key].count('VAULT')
+    # if 'poc' in SYSTEMTYPE.lower():
+    #     for site in CardList.keys():
+    #         consulcount=CardList[site].count('ConsulServer')
+    #         rmqcount=CardList[site].count('RMQ')
+    #         vaultcount=CardList[site].count('VAULT')
 
-            if consulcount != 3 :
-                logger.error("{} Section in master input Consul Container Count is :: {}. Required Consul card in each site is 3. Please check and update master input file CARDS value".format(key,consulcount))
-                sys.exit(1)
-            if rmqcount != 3 :
-                logger.error("{} Section in master input RMQ Container Count is :: {}. Required RMQ card in each site is 3. Please check and update master input file CARDS value".format(key,rmqcount))
-                sys.exit(1)
-            if vaultcount != 2 :
-                logger.error("{} Section in master input VAULT Container Count is :: {}. Required VAULT card in each site is 2. Please check and update master input file CARDS value".format(key,vaultcount))
-                sys.exit(1)
+    #         if consulcount != 3 :
+    #             logger.error("{} Section in master input Consul Container Count is :: {}. Required Consul card in each site is 3. Please check and update master input file CARDS value".format(key,consulcount))
+    #             sys.exit(1)
+    #         if rmqcount != 3 :
+    #             logger.error("{} Section in master input RMQ Container Count is :: {}. Required RMQ card in each site is 3. Please check and update master input file CARDS value".format(key,rmqcount))
+    #             sys.exit(1)
+    #         if vaultcount != 2 :
+    #             logger.error("{} Section in master input VAULT Container Count is :: {}. Required VAULT card in each site is 2. Please check and update master input file CARDS value".format(key,vaultcount))
+    #             sys.exit(1)
 
-            evaluate_idap_cards('poc', CardList[key], key, IDAP_INSTALL_LIGHT_POC)
+    #         evaluate_idap_cards('poc', CardList[site], site, IDAP_INSTALL_LIGHT_POC)
 
-    if 'nnigw' in SYSTEMTYPE.lower():
-        for key in NNIGWCardList.keys():
-            consulcount=NNIGWCardList[key].count('ConsulServer')
-            rmqcount=NNIGWCardList[key].count('RMQ')
-            vaultcount=NNIGWCardList[key].count('VAULT')
+    # if 'nnigw' in SYSTEMTYPE.lower():
+    #     for site in NNIGWCardList.keys():
+    #         consulcount=NNIGWCardList[site].count('ConsulServer')
+    #         rmqcount=NNIGWCardList[site].count('RMQ')
+    #         vaultcount=NNIGWCardList[site].count('VAULT')
 
-            if consulcount != 3 :
-                logger.error("{} Section in master input Consul Container Count is :: {} for NNIGW. Required Consul card in each site is 3. Please check and update master input file CARDS value".format(key,consulcount))
-                sys.exit(1)
-            if rmqcount != 3 :
-                logger.error("{} Section in master input RMQ Container Count is :: {} for NNIGW. Required RMQ card in each site is 3. Please check and update master input file CARDS value".format(key,rmqcount))
-                sys.exit(1)
-            if vaultcount != 2 :
-                logger.error("{} Section in master input VAULT Container Count is :: {} for NNIGW. Required VAULT card in each site is 2. Please check and update master input file CARDS value".format(key,vaultcount))
-                sys.exit(1)
+    #         if consulcount != 3 :
+    #             logger.error("{} Section in master input Consul Container Count is :: {} for NNIGW. Required Consul card in each site is 3. Please check and update master input file CARDS value".format(site,consulcount))
+    #             sys.exit(1)
+    #         if rmqcount != 3 :
+    #             logger.error("{} Section in master input RMQ Container Count is :: {} for NNIGW. Required RMQ card in each site is 3. Please check and update master input file CARDS value".format(site,rmqcount))
+    #             sys.exit(1)
+    #         if vaultcount != 2 :
+    #             logger.error("{} Section in master input VAULT Container Count is :: {} for NNIGW. Required VAULT card in each site is 2. Please check and update master input file CARDS value".format(site,vaultcount))
+    #             sys.exit(1)
 
-            evaluate_idap_cards('nnigw', NNIGWCardList[key], key, IDAP_INSTALL_LIGHT_NNIGW)
+    #         evaluate_idap_cards('nnigw', NNIGWCardList[site], site, IDAP_INSTALL_LIGHT_NNIGW)
 
 def Updaterhelidminstance(Type):
     '''
@@ -1180,16 +1161,16 @@ def validate_oam_configuration(ip_map_hash, config, logger):
             logger: Logger instance for error logging
         """
         for mysite in ip_map_hash:
-            if config.get(mysite,'OAMPLANE_SUBNET') == '' or config.get(mysite,'OAMPLANE_GATEWAY') == '' or config.get(mysite,'OAMPLANE_BROADCASTIP') == '' or config.get(mysite,'OAMPLANE_MGMT_BRIDGE')  == '':
+            if FreshLaunchInvVars[mysite]['OAMPLANE_SUBNET'] == '' or FreshLaunchInvVars[mysite]['OAMPLANE_GATEWAY'] == '' or FreshLaunchInvVars[mysite]['OAMPLANE_BROADCASTIP'] == '' or FreshLaunchInvVars[mysite]['OAMPLANE_MGMT_BRIDGE']  == '':
                 print("Please configure all OAM inputs in the Conf file and retry")
                 logger.error("Please configure all OAM inputs in the Conf file and retry")
                 #sys.exit(1)
-            if config.get(mysite,'OAMPLANE_MGMT_NW') == '' and config.get(mysite,'FIXEDIP_SERVICETYPE_MAP') == '':
+            if FreshLaunchInvVars[mysite]['OAMPLANE_MGMT_NW'] == '' and FreshLaunchInvVars[mysite]['FIXEDIP_SERVICETYPE_MAP'] == '':
                 print ("Please configure OAMPLANE_MGMT_NW or FIXEDIP_SERVICETYPE_MAP and retry")
                 logger.error("Please configure OAMPLANE_MGMT_NW or FIXEDIP_SERVICETYPE_MAP and retry")
                 
                 
-def populate_chassis_data(ip_map_hash, config, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, 
+def populate_chassis_data(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, 
                              ALLPOCVM, ALLPOCBM, ALLNNIVM, ALLNNIBM, XDMVMIP, SIGVMIP, 
                              exclude_cards):
         """
@@ -1197,7 +1178,6 @@ def populate_chassis_data(ip_map_hash, config, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_
         
         Args:
             ip_map_hash: Dictionary containing site information
-            config: Configuration parser object
             SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
             VM_CHASSIS: Dictionary to store POC chassis data
             NNIGW_VM_CHASSIS: Dictionary to store NNIGW chassis data
@@ -1217,140 +1197,140 @@ def populate_chassis_data(ip_map_hash, config, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_
         
         for site in ip_map_hash.keys():
             if 'poc' in SYSTEMTYPE.lower():
-                Chassis_Count = config.get(site, 'TOTAL_NO_CHASSIS')
+                Chassis_Count = FreshLaunchInvVars[site]['TOTAL_NO_CHASSIS']
                 for count in range(0, int(Chassis_Count)):
                     count += 1
                     if site not in VM_CHASSIS:
                         VM_CHASSIS[site] = {}
 
                     VM_CHASSIS[site][count] = ({
-                        'CARDS': config.get(site, f'VM_CHASSIS_{count}_CARDLIST').split(',')
+                        'CARDS': FreshLaunchInvVars[site][f'VM_CHASSIS_{count}_CARDLIST'].split(',')
                     })
                     VM_CHASSIS[site][count].update({
-                        'VMIP': config.get(site, f'VM_CHASSIS_{count}_SERVICEVMIP')
+                        'VMIP': FreshLaunchInvVars[site][f'VM_CHASSIS_{count}_SERVICEVMIP']
                     })
                     VM_CHASSIS[site][count].update({
-                        'SERVICEVMIP': config.get(site, f'VM_CHASSIS_{count}_SERVICEVMIP')
+                        'SERVICEVMIP': FreshLaunchInvVars[site][f'VM_CHASSIS_{count}_SERVICEVMIP']
                     })
                     VM_CHASSIS[site][count].update({
-                        'OAMVMIP': config.get(site, f'VM_CHASSIS_{count}_OAMVMIP')
+                        'OAMVMIP': FreshLaunchInvVars[site][f'VM_CHASSIS_{count}_OAMVMIP']
                     })
                     
-                    ALLPOCVM.append(config.get(site, f'VM_CHASSIS_{count}_OAMVMIP'))
-                    ALLPOCBM.append(config.get(site, f'VM_CHASSIS_{count}_HOSTIP'))
+                    ALLPOCVM.append(FreshLaunchInvVars[site][f'VM_CHASSIS_{count}_OAMVMIP'])
+                    ALLPOCBM.append(FreshLaunchInvVars[site][f'VM_CHASSIS_{count}_HOSTIP'])
                     
                     POCCardCount += len(VM_CHASSIS[site][count]['CARDS'])
                     POCCardCount -= sum(1 for card in VM_CHASSIS[site][count]['CARDS'] 
                                       if card in exclude_cards)
                     
                     if 'XDM' in VM_CHASSIS[site][count]['CARDS']:
-                        XDMVMIP.append(config.get('PRIMARY', f'VM_CHASSIS_{count}_OAMVMIP'))
+                        XDMVMIP.append(FreshLaunchInvVars[Constants.SITE1][f'VM_CHASSIS_{count}_OAMVMIP'])
 
             if 'nnigw' in SYSTEMTYPE.lower():
-                if site == 'SECONDARY':
-                    continue
+                # if site == 'SECONDARY':
+                #     continue
                     
-                Chassis_Count = config.get(site, 'NNIGW_TOTAL_NO_CHASSIS')
+                Chassis_Count = FreshLaunchInvVars[site]['NNIGW_TOTAL_NO_CHASSIS']
                 for count in range(0, int(Chassis_Count)):
                     count += 1
                     if site not in NNIGW_VM_CHASSIS:
                         NNIGW_VM_CHASSIS[site] = {}
 
                     NNIGW_VM_CHASSIS[site][count] = ({
-                        'CARDS': config.get(site, f'NNIGW_VM_CHASSIS_{count}_CARDLIST').split(',')
+                        'CARDS': FreshLaunchInvVars[site][f'NNIGW_VM_CHASSIS_{count}_CARDLIST'].split(',')
                     })
                     NNIGW_VM_CHASSIS[site][count].update({
-                        'VMIP': config.get(site, f'NNIGW_VM_CHASSIS_{count}_SERVICEVMIP')
+                        'VMIP': FreshLaunchInvVars[site][f'NNIGW_VM_CHASSIS_{count}_SERVICEVMIP']
                     })
                     
-                    ALLNNIVM.append(config.get(site, f'NNIGW_VM_CHASSIS_{count}_OAMVMIP'))
-                    ALLNNIBM.append(config.get(site, f'NNIGW_VM_CHASSIS_{count}_HOSTIP'))
+                    ALLNNIVM.append(FreshLaunchInvVars[site][f'NNIGW_VM_CHASSIS_{count}_OAMVMIP'])
+                    ALLNNIBM.append(FreshLaunchInvVars[site][f'NNIGW_VM_CHASSIS_{count}_HOSTIP'])
                     
                     GWCardCount += len(NNIGW_VM_CHASSIS[site][count]['CARDS'])
                     GWCardCount -= sum(1 for card in NNIGW_VM_CHASSIS[site][count]['CARDS'] 
                                      if card in exclude_cards)
                     
                     if 'SIG' in NNIGW_VM_CHASSIS[site][count]['CARDS']:
-                        SIGVMIP.append(config.get('PRIMARY', f'NNIGW_VM_CHASSIS_{count}_OAMVMIP'))
+                        SIGVMIP.append(FreshLaunchInvVars[Constants.SITE1][f'NNIGW_VM_CHASSIS_{count}_OAMVMIP'])
         
         return POCCardCount, GWCardCount
     
 
-def populate_vm_hostips(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS):
-        """
-        Populate VM host IPs mapping for POC and NNIGW systems.
+# def populate_emsvm_chassid(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS):
+#         """
+#         Populate VM host IP to chassis id mapping for EMS VMs for POC and NNIGW systems.
         
-        Args:
-            ip_map_hash: Dictionary containing site information
-            SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
-            VM_CHASSIS: Dictionary containing POC chassis data
-            NNIGW_VM_CHASSIS: Dictionary containing NNIGW chassis data
-            VM_HOSTIPS: Dictionary to store POC VM host IP mappings
-            NNIGW_VM_HOSTIPS: Dictionary to store NNIGW VM host IP mappings
-        """
-        for site in ip_map_hash.keys():
-            if 'poc' in SYSTEMTYPE.lower():
-                count = 0
-                for chid in VM_CHASSIS[site].keys():
-                    if 'EMS' in VM_CHASSIS[site][chid]['CARDS']:
-                        count = Constants.clustevar[site]
+#         Args:
+#             ip_map_hash: Dictionary containing site information
+#             SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
+#             VM_CHASSIS: Dictionary containing POC chassis data
+#             NNIGW_VM_CHASSIS: Dictionary containing NNIGW chassis data
+#             VM_HOSTIPS: Dictionary to store POC VM host IP mappings
+#             NNIGW_VM_HOSTIPS: Dictionary to store NNIGW VM host IP mappings
+#         """
+#         for site in ip_map_hash.keys():
+#             if 'poc' in SYSTEMTYPE.lower():
+#                 count = 0
+#                 for chid in VM_CHASSIS[site].keys():
+#                     if 'EMS' in VM_CHASSIS[site][chid]['CARDS']:
+#                         count = Constants.clustevar[site]
 
-                        if "SECONDARY" not in ip_map_hash.keys() and site == "GEO":
-                            count = 2
+#                         # if "SECONDARY" not in ip_map_hash.keys() and site == "GEO":
+#                         #     count = 2
 
-                        VM_HOSTIPS[VM_CHASSIS[site][chid]['VMIP']] = count
+#                         VM_HOSTIPS[VM_CHASSIS[site][chid]['VMIP']] = count
 
-            if 'nnigw' in SYSTEMTYPE.lower():
-                if site in 'SECONDARY':
-                    continue
-                count = 0
-                for chid in NNIGW_VM_CHASSIS[site].keys():
-                    if 'EMSNNI' in NNIGW_VM_CHASSIS[site][chid]['CARDS']:
-                        count = Constants.clustevar[site]
+#             if 'nnigw' in SYSTEMTYPE.lower():
+#                 # if site in 'SECONDARY':
+#                 #     continue
+#                 count = 0
+#                 for chid in NNIGW_VM_CHASSIS[site].keys():
+#                     if 'EMSNNI' in NNIGW_VM_CHASSIS[site][chid]['CARDS']:
+#                         count = Constants.clustevar[site]
 
-                        if site == "GEO":
-                            count = 2
+#                         # if site == "GEO":
+#                         #     count = 2
 
-                        NNIGW_VM_HOSTIPS[NNIGW_VM_CHASSIS[site][chid]['VMIP']] = count
+#                         NNIGW_VM_HOSTIPS[NNIGW_VM_CHASSIS[site][chid]['VMIP']] = count
                         
 
-def assign_vm_hostip_counts(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS):
-        """
-        Assign VM host IP counts for POC and NNIGW systems.
+# def assign_othervm_chassid(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS):
+#         """
+#         Assign Chassis id for VM other than EMS VMs  counts for POC and NNIGW systems.
         
-        Args:
-            ip_map_hash: Dictionary containing site information
-            SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
-            VM_CHASSIS: Dictionary containing POC chassis data
-            NNIGW_VM_CHASSIS: Dictionary containing NNIGW chassis data
-            VM_HOSTIPS: Dictionary to store POC VM host IP mappings
-            NNIGW_VM_HOSTIPS: Dictionary to store NNIGW VM host IP mappings
-        """
-        if 'poc' in SYSTEMTYPE.lower():
-            count = max(VM_HOSTIPS.values(), key=int)
+#         Args:
+#             ip_map_hash: Dictionary containing site information
+#             SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
+#             VM_CHASSIS: Dictionary containing POC chassis data
+#             NNIGW_VM_CHASSIS: Dictionary containing NNIGW chassis data
+#             VM_HOSTIPS: Dictionary to store POC VM host IP mappings
+#             NNIGW_VM_HOSTIPS: Dictionary to store NNIGW VM host IP mappings
+#         """
+#         if 'poc' in SYSTEMTYPE.lower():
+#             count = max(VM_HOSTIPS.values(), key=int)
             
-        nnigw_count = ''
-        if 'nnigw' in SYSTEMTYPE.lower():
-            nnigw_count = max(NNIGW_VM_HOSTIPS.values(), key=int)
+#         nnigw_count = ''
+#         if 'nnigw' in SYSTEMTYPE.lower():
+#             nnigw_count = max(NNIGW_VM_HOSTIPS.values(), key=int)
 
-        for site in ['PRIMARY','SECONDARY','GEO']:
-            if not site in ip_map_hash.keys():
-                continue
+#         for site in ['PRIMARY','SECONDARY','GEO']:
+#             if not site in ip_map_hash.keys():
+#                 continue
 
-            if 'poc' in SYSTEMTYPE.lower():
-                for chid in VM_CHASSIS[site].keys():
-                    if VM_CHASSIS[site][chid]['VMIP'] not in VM_HOSTIPS.keys():
-                        count +=1
-                        VM_HOSTIPS[VM_CHASSIS[site][chid]['VMIP']] = count
+#             if 'poc' in SYSTEMTYPE.lower():
+#                 for chid in VM_CHASSIS[site].keys():
+#                     if VM_CHASSIS[site][chid]['VMIP'] not in VM_HOSTIPS.keys():
+#                         count +=1
+#                         VM_HOSTIPS[VM_CHASSIS[site][chid]['VMIP']] = count
 
-            if 'nnigw' in SYSTEMTYPE.lower():
-                if site in 'SECONDARY':
-                    continue
+#             if 'nnigw' in SYSTEMTYPE.lower():
+#                 if site in 'SECONDARY':
+#                     continue
 
-                for chid in NNIGW_VM_CHASSIS[site].keys():
-                    if NNIGW_VM_CHASSIS[site][chid]['VMIP'] not in NNIGW_VM_HOSTIPS.keys():
-                        nnigw_count +=1
-                        NNIGW_VM_HOSTIPS[NNIGW_VM_CHASSIS[site][chid]['VMIP']] = nnigw_count
+#                 for chid in NNIGW_VM_CHASSIS[site].keys():
+#                     if NNIGW_VM_CHASSIS[site][chid]['VMIP'] not in NNIGW_VM_HOSTIPS.keys():
+#                         nnigw_count +=1
+#                         NNIGW_VM_HOSTIPS[NNIGW_VM_CHASSIS[site][chid]['VMIP']] = nnigw_count
                         
 
 def write_ip_mapping_to_file(ipmapjson, logger):
@@ -1401,7 +1381,7 @@ def update_host_vars(ems_inv: CreateInventory, host_vars: dict, hostname: str, l
      
             
             
-def update_input_data(ems_inv, ipmapjson, Imagelist, NNIImagelist, INTERNAL_HOST_DOMAIN, config, logger):
+def update_input_data(ems_inv, ipmapjson, sites_to_launch, logger):
         """
         Update input data by creating container INI files and answer files for each server and card.
         
@@ -1409,57 +1389,80 @@ def update_input_data(ems_inv, ipmapjson, Imagelist, NNIImagelist, INTERNAL_HOST
             ipmapjson: Dictionary containing IP mappings for servers and cards
             Imagelist: Dictionary containing POC image mappings
             NNIImagelist: Dictionary containing NNI image mappings
-            INTERNAL_HOST_DOMAIN: Internal host domain string
-            config: Configuration parser object
+            systemtype: System type (poc, nnigw, or poc_nnigw)
             logger: Logger instance for logging
         """
         global Dgid, InstallationType, Ansfile
         
-        for server in ipmapjson:
-            for card in ipmapjson[server]:
-                logger.info("Creating Container ini file for Card:: {}".format(card))
-                if 'ipaserver' in card:
-                    rhelpttsystemtype = '1'
-                    ServerType='RHELIDM'
+        for site in ipmapjson:
+            
+            if site.lower() not in sites_to_launch:
+                continue
+            for card in ipmapjson[site]:
+                # logger.info("Creating Container ini file for Card:: {}".format(card))
+                # if 'ipaserver' in card:
+                #     rhelpttsystemtype = '1'
+                #     ServerType='RHELIDM'
 
-                    if 'NNI' in card:
-                        rhelpttsystemtype = '2'
-                        ServerType='NNIRHELIDM'
+                #     if 'NNI' in card:
+                #         rhelpttsystemtype = '2'
+                #         ServerType='NNIRHELIDM'
 
-                    ipaimage=Imagelist['RHELIDM']
-                    if 'NNI' in card:
-                        ipaimage=NNIImagelist['RHELIDM']
+                #     ipaimage=Imagelist['RHELIDM']
+                #     if 'NNI' in card:
+                #         ipaimage=NNIImagelist['RHELIDM']
 
-                    CreateContainerINI(server,ServerType,card,card+'.'+INTERNAL_HOST_DOMAIN,ipmapjson[server][card],config.get('GLOBAL','CARRIERID')+str(Dgid)+'1',ipaimage,rhelpttsystemtype);
-                    Dgid+=1
+                #     CreateContainerINI(site, ServerType,card,card+'.'+INTERNAL_HOST_DOMAIN,ipmapjson[site][card],config.get('GLOBAL','CARRIERID')+str(Dgid)+'1',ipaimage,rhelpttsystemtype);
+                #     Dgid+=1
+                # else:
+                if card in ['EMSPRI','EMSSEC','EMSGEO']:
+                    pttsystemtype = '1'
+                    #TODO: get ems image from AAP Inventory
+                    image = "rhel810_platform/rhel810_ems:R14_000_00_D14_000_00_111120250428"
+                elif card in ['EMSNNIPRI', 'EMSGEONNI']:
+                    pttsystemtype = '2'
+                    image = "rhel810_platform/rhel810_ems:R14_000_00_D14_000_00_111120250428"
                 else:
-                    if card == 'EMS':
-                        pttsystemtype = '1'
-                        image = Imagelist['EMS']
-                    if card == 'EMSNNI':
-                        pttsystemtype = '2'
-                        image = NNIImagelist['EMS']
-                    if server == 'PRIMARY':
+                    logger.error("Invalid ems card type: {}".format(card))
+                    sys.exit(1)
+
+                if site == Constants.SITE1:
+                    if card == 'EMSPRI':
                         InstallationType = '1'
-                        Ansfile = card.lower()+'pri.ans'
-                        ini_host_vars = CreateContainerINI(server,card,card.lower()+server.lower(),'emspri',ipmapjson[server][card],'emsdsn',image,pttsystemtype)
-                        answer_vars = CreateAnswerFile(server,card.lower()+'pri',pttsystemtype,InstallationType,'EMSPRI',ipmapjson[server][card])
-                    if server == 'SECONDARY':
+                        Ansfile = card.lower()+site.lower()+'.ans'
+                        ini_host_vars = CreateContainerINI(site,card,card.lower()+site.lower(),'emspri',ipmapjson[site][card],'emsdsn',image,pttsystemtype)
+                        answer_vars = CreateAnswerFile(site,card.lower()+'pri',pttsystemtype,InstallationType,'EMSPRI',ipmapjson[site][card])
+                    if card == 'EMSPRINNI':
+                        InstallationType = '1'
+                        Ansfile = card.lower()+site.lower()+'.ans'
+                        ini_host_vars = CreateContainerINI(site,card,card.lower()+site.lower(),'emsnnipri',ipmapjson[site][card],'emsdsn',image,pttsystemtype)
+                        answer_vars = CreateAnswerFile(site,card.lower()+'pri',pttsystemtype,InstallationType,'EMSNNIPRI',ipmapjson[site][card])
+                    if card == 'EMSSEC':
                         InstallationType = '2'
-                        Ansfile = card.lower()+'sec.ans'
-                        ini_host_vars = CreateContainerINI(server,card,card.lower()+server.lower(),'emssec',ipmapjson[server][card],'emsdsn',image,pttsystemtype)
-                        answer_vars = CreateAnswerFile(server,card.lower()+'sec',pttsystemtype,InstallationType,'EMSSEC',ipmapjson[server][card])
-                    if server == 'GEO':
+                        Ansfile = card.lower()+site.lower()+'.ans'
+                        ini_host_vars = CreateContainerINI(site,card,card.lower()+site.lower(),'emssec',ipmapjson[site][card],'emsdsn',image,pttsystemtype)
+                        answer_vars = CreateAnswerFile(site,card.lower()+'sec',pttsystemtype,InstallationType,'EMSSEC',ipmapjson[site][card])
+                # if server == 'SECONDARY':
+                #     InstallationType = '2'
+                #     Ansfile = card.lower()+'sec.ans'
+                #     ini_host_vars = CreateContainerINI(server,card,card.lower()+server.lower(),'emssec',ipmapjson[server][card],'emsdsn',image,pttsystemtype)
+                #     answer_vars = CreateAnswerFile(server,card.lower()+'sec',pttsystemtype,InstallationType,'EMSSEC',ipmapjson[server][card])
+                if site == Constants.SITE2:
+                    if card == 'EMSGEO':  
                         InstallationType = '3'
-                        Ansfile = card.lower()+'geo.ans'
-                        ini_host_vars = CreateContainerINI(server,card,card.lower()+server.lower(),'emsgeo',ipmapjson[server][card],'emsdsn',image,pttsystemtype)
-                        answer_vars = CreateAnswerFile(server,card.lower()+'geo',pttsystemtype,InstallationType,'EMSGEO',ipmapjson[server][card])
-                        
-                    
-                    all_host_vars = {**ini_host_vars, **answer_vars}
-                    update_host_vars(ems_inv, all_host_vars, card.lower()+server.lower(), logger)
-                        
-                    
+                        Ansfile = card.lower()+site.lower()+'.ans'
+                        ini_host_vars = CreateContainerINI(site,card,card.lower()+site.lower(),'emsgeo',ipmapjson[site][card],'emsdsn',image,pttsystemtype)
+                        answer_vars = CreateAnswerFile(site,card.lower()+'geo',pttsystemtype,InstallationType,'EMSGEO',ipmapjson[site][card])
+                    if card == 'EMSNNIGEO':  
+                        InstallationType = '3'
+                        Ansfile = card.lower()+site.lower()+'.ans'
+                        ini_host_vars = CreateContainerINI(site,card,card.lower()+site.lower(),'emsnnigeo',ipmapjson[site][card],'emsdsn',image,pttsystemtype)
+                        answer_vars = CreateAnswerFile(site,card.lower()+'geo',pttsystemtype,InstallationType,'EMSNNIGEO',ipmapjson[site][card])
+
+                
+                all_host_vars = {**ini_host_vars, **answer_vars}
+                update_host_vars(ems_inv, all_host_vars, card.lower(), logger)
+
                     
 
 
@@ -1531,8 +1534,7 @@ def createFreshLaunchInventory(freshlaunchinv, logger):
 
 def createFreshLaunchInv(freshlaunchinv, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM, 
                                 Emsiplist, Nniiplist, SYSTEMTYPE, POCPriems, GWPriems, POCPRIEMSVM, 
-                                GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount, config, 
-                                DEPLOYMENTTYPE, F5_CORES, SETUPTYPE, AUTOMATE_DOCKER_PULL, logger):
+                                GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount, DEPLOYMENTTYPE, F5_CORES, SETUPTYPE, AUTOMATE_DOCKER_PULL, logger):
     """
     Write password hosts file with VM and configuration information.
     
@@ -1555,7 +1557,6 @@ def createFreshLaunchInv(freshlaunchinv, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, A
         SIGVMIP: List of SIG VM IPs
         POCCardCount: Count of POC cards
         GWCardCount: Count of gateway cards
-        config: Configuration parser object
         DEPLOYMENTTYPE: Deployment type
         F5_CORES: F5 cores configuration
         SETUPTYPE: Setup type
@@ -1603,29 +1604,26 @@ def createFreshLaunchInv(freshlaunchinv, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, A
         freshLaunchVars = {}
 
         if 'poc' in SYSTEMTYPE.lower():
-            POCVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCVM])
-            POCBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLPOCBM])
-            POCEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Emsiplist])
-            freshLaunchVars['POCVMIPS'] = POCVM_ips
-            freshLaunchVars['POCBMIPS'] = POCBM_ips
-            freshLaunchVars['POCEMSIPS'] = POCEMS_ips
+            freshLaunchVars['POCVMIPS'] = ALLPOCVM
+            freshLaunchVars['POCBMIPS'] = ALLPOCBM
+            freshLaunchVars['POCEMSIPS'] = Emsiplist
             freshLaunchVars['POCPRIEMSIP'] = POCPriems
             freshLaunchVars['POCPRIEMSVM'] = POCPRIEMSVM[0]
             freshLaunchVars['XDMVMIP'] = XDMVMIP[0]
             freshLaunchVars['POCCardCount'] = POCCardCount
-            freshLaunchVars['POC_LICENSE_PATH'] = config.get('GLOBAL', 'POC_LICENSE_PATH')
+            freshLaunchVars['POC_LICENSE_PATH'] = FreshLaunchInvVars['GLOBAL']['POC_LICENSE_PATH']
         if 'nnigw' in SYSTEMTYPE.lower():
             NNIVM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIVM])
             NNIBM_ips = ', '.join(['"{}"'.format(ip) for ip in ALLNNIBM])
             NNIEMS_ips = ', '.join(['"{}"'.format(ip) for ip in Nniiplist])
-            freshLaunchVars['GWVMIPS'] = NNIVM_ips
-            freshLaunchVars['GWBMIPS'] = NNIBM_ips
-            freshLaunchVars['GWEMSIPS'] = NNIEMS_ips
+            freshLaunchVars['GWVMIPS'] = ALLNNIVM
+            freshLaunchVars['GWBMIPS'] = ALLNNIBM
+            freshLaunchVars['GWEMSIPS'] = Nniiplist
             freshLaunchVars['GWPRIEMSIP'] = GWPriems
             freshLaunchVars['GWPRIEMSVM'] = GWPRIEMSVM[0]
             freshLaunchVars['SIGVMIP'] = SIGVMIP[0]
             freshLaunchVars['GWCardCount'] = GWCardCount
-            freshLaunchVars['NNI_LICENSE_PATH'] = config.get('GLOBAL', 'NNI_LICENSE_PATH')
+            freshLaunchVars['NNI_LICENSE_PATH'] = FreshLaunchInvVars['GLOBAL']['NNI_LICENSE_PATH']
             
         freshLaunchVars['SYSTEM_TYPE'] = SYSTEMTYPE
         freshLaunchVars['DEPLOYMENTTYPE'] = DEPLOYMENTTYPE
@@ -1633,15 +1631,15 @@ def createFreshLaunchInv(freshlaunchinv, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, A
         freshLaunchVars['SETUP_TYPE'] = SETUPTYPE.lower()
         if SETUPTYPE.lower() == 'wavelite':
             for site in ['PRIMARY','GEO']:
-                WAVELITE_ROUTE=config.get(site,'WAVELITE_ROUTE')
+                WAVELITE_ROUTE=FreshLaunchInvVars[site]['WAVELITE_ROUTE']
                 freshLaunchVars['WAVELITE_ROUTE_'+site] = WAVELITE_ROUTE
         freshLaunchVars['AUTOMATE_DOCKER_PULL'] = AUTOMATE_DOCKER_PULL
         if AUTOMATE_DOCKER_PULL.lower()=='yes':
-            freshLaunchVars['DOCKER_USERNAME'] = config.get('GLOBAL', 'DOCKER_USERNAME')
-            freshLaunchVars['DOCKER_PASSWORD'] = config.get('GLOBAL', 'DOCKER_PASSWORD').strip('"')
-            freshLaunchVars['DOCKER_REGISTRY'] = config.get('GLOBAL', 'DOCKER_REGISTRY')
-            freshLaunchVars['COSIGN_PUB_KEY_PATH'] = '/Software/'+config.get('GLOBAL', 'COSIGN_PUB_KEY')
-        freshLaunchVars['WILDCARDFQDN'] = config.get('GLOBAL', 'WILDCARDFQDN')
+            freshLaunchVars['DOCKER_USERNAME'] = FreshLaunchInvVars['GLOBAL']['DOCKER_USERNAME']
+            freshLaunchVars['DOCKER_PASSWORD'] = FreshLaunchInvVars['GLOBAL']['DOCKER_PASSWORD'].strip('"')
+            freshLaunchVars['DOCKER_REGISTRY'] = FreshLaunchInvVars['GLOBAL']['DOCKER_REGISTRY']
+            freshLaunchVars['COSIGN_PUB_KEY_PATH'] = '/Software/'+FreshLaunchInvVars['GLOBAL']['COSIGN_PUB_KEY']
+        freshLaunchVars['WILDCARDFQDN'] = FreshLaunchInvVars['GLOBAL']['WILDCARDFQDN']
         freshLaunchVars['ansible_ssh_user'] = 'autoinstall'
         freshLaunchVars['ansible_ssh_pass'] = 'kodiak'
         freshLaunchVars['ansible_connection'] = 'ssh'
@@ -1653,96 +1651,96 @@ def createFreshLaunchInv(freshlaunchinv, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, A
         sys.exit(1)
             
 
-def create_rhelidm_yaml_files(SYSTEMTYPE, rhelidmjson1, IPASERVERCHASSIS, NNIIPASERVERCHASSIS, 
-                                  VM_HOSTIPS, NNIGW_VM_HOSTIPS, config, COMMONPLATFLAG, 
-                                  DEPLOYMENT_PLATFORM_TYPE):
-        """
-        Create RHELIDM YAML files for POC and NNIGW systems.
+# def create_rhelidm_yaml_files(SYSTEMTYPE, rhelidmjson1, IPASERVERCHASSIS, NNIIPASERVERCHASSIS, 
+#                                   VM_HOSTIPS, NNIGW_VM_HOSTIPS, config, COMMONPLATFLAG, 
+#                                   DEPLOYMENT_PLATFORM_TYPE):
+#         """
+#         Create RHELIDM YAML files for POC and NNIGW systems.
         
-        Args:
-            SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
-            rhelidmjson1: Dictionary containing RHELIDM server configurations
-            IPASERVERCHASSIS: Dictionary mapping IPA servers to chassis IDs
-            NNIIPASERVERCHASSIS: Dictionary mapping NNI IPA servers to chassis IDs
-            VM_HOSTIPS: Dictionary mapping VM IPs to host IPs
-            NNIGW_VM_HOSTIPS: Dictionary mapping NNIGW VM IPs to host IPs
-            config: Configuration parser object
-            COMMONPLATFLAG: Common platform flag
-            DEPLOYMENT_PLATFORM_TYPE: Deployment platform type
-        """
+#         Args:
+#             SYSTEMTYPE: System type (poc, nnigw, or poc_nnigw)
+#             rhelidmjson1: Dictionary containing RHELIDM server configurations
+#             IPASERVERCHASSIS: Dictionary mapping IPA servers to chassis IDs
+#             NNIIPASERVERCHASSIS: Dictionary mapping NNI IPA servers to chassis IDs
+#             VM_HOSTIPS: Dictionary mapping VM IPs to host IPs
+#             NNIGW_VM_HOSTIPS: Dictionary mapping NNIGW VM IPs to host IPs
+#             config: Configuration parser object
+#             COMMONPLATFLAG: Common platform flag
+#             DEPLOYMENT_PLATFORM_TYPE: Deployment platform type
+#         """
         
-        if 'poc' in SYSTEMTYPE.lower():
-            myrhelidmdata = {"rhelidm_servers" : []}
+#         if 'poc' in SYSTEMTYPE.lower():
+#             myrhelidmdata = {"rhelidm_servers" : []}
 
-            for site in ['PRIMARY','SECONDARY','GEO']:
-                if not site in rhelidmjson1:
-                    continue
+#             for site in ['PRIMARY','SECONDARY','GEO']:
+#                 if not site in rhelidmjson1:
+#                     continue
 
-                mydata = {}
-                newclusterid = Constants.CLUSTERIDDICT[site]
-                rhelidmymlroute = config.get(site,'POC_ROUTE')
+#                 mydata = {}
+#                 newclusterid = Constants.CLUSTERIDDICT[site]
+#                 rhelidmymlroute = config.get(site,'POC_ROUTE')
                 
-                for val in rhelidmjson1[site]:
-                    if 'NNI' in val['host'].split('.')[0] or 'gw' in val['host'].split('.')[0]:
-                        continue
+#                 for val in rhelidmjson1[site]:
+#                     if 'NNI' in val['host'].split('.')[0] or 'gw' in val['host'].split('.')[0]:
+#                         continue
 
-                    ipachassisid = IPASERVERCHASSIS[val['host'].split('.')[0]]
-                    rhelhostip = config.get(site,'VM_CHASSIS_'+str(ipachassisid)+'_SERVICEVMIP')
-                    newchassisid = VM_HOSTIPS[rhelhostip]
+#                     ipachassisid = IPASERVERCHASSIS[val['host'].split('.')[0]]
+#                     rhelhostip = config.get(site,'VM_CHASSIS_'+str(ipachassisid)+'_SERVICEVMIP')
+#                     newchassisid = VM_HOSTIPS[rhelhostip]
 
-                    if DEPLOYMENT_PLATFORM_TYPE == 5:
-                        val['host'] = QuotedString(val['host'].lstrip('poc'))
+#                     if DEPLOYMENT_PLATFORM_TYPE == 5:
+#                         val['host'] = QuotedString(val['host'].lstrip('poc'))
 
-                    mydata = {}
-                    mydata["clusterid"] = newclusterid
-                    mydata["chassisid"] = newchassisid
-                    mydata["route"] = rhelidmymlroute
+#                     mydata = {}
+#                     mydata["clusterid"] = newclusterid
+#                     mydata["chassisid"] = newchassisid
+#                     mydata["route"] = rhelidmymlroute
                     
-                    if not "containers" in mydata:
-                        mydata["containers"] = []
+#                     if not "containers" in mydata:
+#                         mydata["containers"] = []
                         
-                    mydata["containers"].append(val)
-                    myrhelidmdata["rhelidm_servers"].append(mydata)
+#                     mydata["containers"].append(val)
+#                     myrhelidmdata["rhelidm_servers"].append(mydata)
 
-            with open(f'{Constants.Relative_path}rhelidm.yml', 'w') as f:
-                yaml.preserve_quotes = True
-                yaml.dump(myrhelidmdata, f, Dumper=MyDumper)
+#             with open(f'{Constants.Relative_path}rhelidm.yml', 'w') as f:
+#                 yaml.preserve_quotes = True
+#                 yaml.dump(myrhelidmdata, f, Dumper=MyDumper)
 
-        if 'nnigw' in SYSTEMTYPE.lower() and COMMONPLATFLAG == 'no':
-            myrhelidmdata = {"rhelidm_servers" : []}
+#         if 'nnigw' in SYSTEMTYPE.lower() and COMMONPLATFLAG == 'no':
+#             myrhelidmdata = {"rhelidm_servers" : []}
 
-            for site in ['PRIMARY','SECONDARY','GEO']:
-                if not site in rhelidmjson1:
-                    continue
+#             for site in ['PRIMARY','SECONDARY','GEO']:
+#                 if not site in rhelidmjson1:
+#                     continue
 
-                mydata = {}
-                newclusterid = Constants.CLUSTERIDDICT[site]
-                rhelidmymlroute = config.get(site,'NNIGW_ROUTE')
+#                 mydata = {}
+#                 newclusterid = Constants.CLUSTERIDDICT[site]
+#                 rhelidmymlroute = config.get(site,'NNIGW_ROUTE')
                 
-                for val in rhelidmjson1[site]:
-                    if 'NNI' in val['host'].split('.')[0] or 'gw' in val['host'].split('.')[0]:
-                        ipachassisid = NNIIPASERVERCHASSIS[val['host'].split('.')[0]]
-                        rhelhostip = config.get(site,'NNIGW_VM_CHASSIS_'+str(ipachassisid)+'_SERVICEVMIP')
-                        newchassisid = NNIGW_VM_HOSTIPS[rhelhostip]
+#                 for val in rhelidmjson1[site]:
+#                     if 'NNI' in val['host'].split('.')[0] or 'gw' in val['host'].split('.')[0]:
+#                         ipachassisid = NNIIPASERVERCHASSIS[val['host'].split('.')[0]]
+#                         rhelhostip = config.get(site,'NNIGW_VM_CHASSIS_'+str(ipachassisid)+'_SERVICEVMIP')
+#                         newchassisid = NNIGW_VM_HOSTIPS[rhelhostip]
                         
-                        mydata = {}
-                        mydata["clusterid"] = newclusterid
-                        mydata["chassisid"] = newchassisid
-                        mydata["route"] = rhelidmymlroute
+#                         mydata = {}
+#                         mydata["clusterid"] = newclusterid
+#                         mydata["chassisid"] = newchassisid
+#                         mydata["route"] = rhelidmymlroute
 
-                        if not "containers" in mydata:
-                            mydata["containers"] = []
+#                         if not "containers" in mydata:
+#                             mydata["containers"] = []
 
-                        val['host'] = QuotedString(val['host'].lstrip('NNI'))
-                        if DEPLOYMENT_PLATFORM_TYPE == 5:
-                            val['host'] = QuotedString(val['host'].lstrip('gw'))
+#                         val['host'] = QuotedString(val['host'].lstrip('NNI'))
+#                         if DEPLOYMENT_PLATFORM_TYPE == 5:
+#                             val['host'] = QuotedString(val['host'].lstrip('gw'))
 
-                        mydata["containers"].append(val)
-                        myrhelidmdata["rhelidm_servers"].append(mydata)
+#                         mydata["containers"].append(val)
+#                         myrhelidmdata["rhelidm_servers"].append(mydata)
                         
-                with open('/DG/activeRelease/NNIplaybook/roles/cms/vars/rhelidm.yml', 'w') as f:
-                    yaml.preserve_quotes = True
-                    yaml.dump(myrhelidmdata, f, Dumper=MyDumper)
+#                 with open('/DG/activeRelease/NNIplaybook/roles/cms/vars/rhelidm.yml', 'w') as f:
+#                     yaml.preserve_quotes = True
+#                     yaml.dump(myrhelidmdata, f, Dumper=MyDumper)
                     
                     
 def write_ip_configuration_files(mylistmap, logger):
@@ -1796,22 +1794,6 @@ def update_rhelidm_instance_info(rhel_idm_file, rhelidminstance):
             logger.info(f"RHELIDM_INSTANCE_INFO### not in {rhel_idm_file} file, hence adding")
             file_object.write('RHELIDM_INSTANCE_INFO###'+json.dumps(rhelidminstance,separators=(',', ':')))
             file_object.write('\n')
-            
-# def Update_inventory_variables(ems_inventory: CreateInventory, inventory_name: str, logger: logging.Logger):
-#     '''
-#     This function updates inventory variables for EMS inventory in AAP
-#     '''
-#     logger.info(f"Updating inventory variables for EMS Inventory: {inventory_name}")
-    
-#     try:
-        
-        
-#         ems_inventory.update_inventory_vars(inventory_name, inventory_vars)
-#         logger.info("Inventory variables updated successfully.")
-        
-#     except Exception as e:
-#         logger.error(f"Failed to update inventory variables: {str(e)}")
-#         sys.exit(1)
 
 
 def CreateEMSInventory(ems_inventory: CreateInventory, logger: logging.Logger):
@@ -1829,12 +1811,14 @@ def CreateEMSInventory(ems_inventory: CreateInventory, logger: logging.Logger):
             time.sleep(2)  # Wait for 2 seconds to ensure deletion is processed
             logger.info(f"Existing EMS Inventory '{Constants.EMSInvNAME}' deleted successfully.")
             
+        
+            
         inventory_vars = {
             'group_poc': Constants.POCGROUPNAME,
-            'group_nn': Constants.NNIGROUPNAME,
+            'group_nni': Constants.NNIGROUPNAME,
             'ansible_ssh_user': Constants.SSH_USER,
             'ansible_ssh_pass': Constants.SSH_PASS,
-            'CONFIG_SCRIPT_PATH': Constants.CONFIG_SCRIPT_PATH,
+            'CONFIG_SCRIPT': Constants.CONFIG_SCRIPT_PATH,
             'CONFIG_PATH': Constants.CONFIG_PATH
         }
         
@@ -1846,12 +1830,27 @@ def CreateEMSInventory(ems_inventory: CreateInventory, logger: logging.Logger):
         logger.error(f"Failed to create EMS Inventory: {str(e)}")
         sys.exit(1)
     
-
+    
+def get_fresh_launch_inventory_vars(inventory, logger):
+    '''
+    This function returns the inventory variables for Fresh Launch Inventory
+    '''
+    try:
+        inv_vars = inventory.get_inventory_vars(Constants.FreshLaunchMainInvName)
+        logger.info("Successfully retrieved inventory variables for Fresh Launch Inventory.")
+        return inv_vars
+    except Exception as e:
+        logger.error(f"Failed to retrieve inventory variables: {str(e)}")
+        sys.exit(1)
+    
 
 if __name__ == "__main__":
     
     logger = setup_logging()
     logger.info("Starting Script Execution")
+    
+    #TODO: Need to read from AAP FreshLaunch Main Inventory
+    sites_to_launch = ['site1']
     
     inventory = CreateInventory(Constants.AAP_API_URL, Constants.AAP_USERNAME, Constants.AAP_PASSWORD, Constants.ORG_NAME, logger)
     
@@ -1864,17 +1863,22 @@ if __name__ == "__main__":
     logger.info(f"Reading master configuration file: {Constants.MasterConfFile}")
     
     
-    config = configparser.ConfigParser()
-    config.read(Constants.MasterConfFile)
+    FreshLaunchInvVars = get_fresh_launch_inventory_vars(inventory, logger)
     
-    DEPLOYMENTTYPE = config.get('GLOBAL', 'DEPLOYMENT_REDUNDANCY_TYPE')
-    DEPLOYMENT_PLATFORM_TYPE = int(config.get('GLOBAL', 'DEPLOYMENT_PLATFORM_TYPE'))
-    SETUPTYPE = config.get('GLOBAL','SETUP_TYPE')
-    SYSTEMTYPE = config.get('GLOBAL','SYSTEM_TYPE')
-    INTERNAL_HOST_DOMAIN = config.get('GLOBAL', 'INTERNAL_HOST_DOMAIN')
-    COMMONPLATFLAG = config.get('GLOBAL','COMMON_PLATFORM_FLAG').lower()
-    F5_CORES = config.get('GLOBAL', 'F5_CORES')
-    AUTOMATE_DOCKER_PULL = config.get('GLOBAL', 'AUTOMATE_DOCKER_PULL')
+    print(f"Fresh Launch Inventory Variables: {FreshLaunchInvVars}")
+    
+    
+    # config = configparser.ConfigParser()
+    # config.read(Constants.MasterConfFile)
+    
+    DEPLOYMENTTYPE = FreshLaunchInvVars['GLOBAL']['DEPLOYMENT_REDUNDANCY_TYPE']
+    DEPLOYMENT_PLATFORM_TYPE = int(FreshLaunchInvVars['GLOBAL']['DEPLOYMENT_PLATFORM_TYPE'])
+    SETUPTYPE = FreshLaunchInvVars['GLOBAL']['SETUP_TYPE']
+    SYSTEMTYPE = FreshLaunchInvVars['GLOBAL']['SYSTEM_TYPE']
+    INTERNAL_HOST_DOMAIN = FreshLaunchInvVars['GLOBAL']['INTERNAL_HOST_DOMAIN']
+    COMMONPLATFLAG = FreshLaunchInvVars['GLOBAL']['COMMON_PLATFORM_FLAG'].lower()
+    F5_CORES = FreshLaunchInvVars['GLOBAL']['F5_CORES']
+    AUTOMATE_DOCKER_PULL = FreshLaunchInvVars['GLOBAL']['AUTOMATE_DOCKER_PULL']
     POCPriems = ''
     GWPriems = ''
     InstallationType = ''
@@ -1884,11 +1888,11 @@ if __name__ == "__main__":
     GWCardCount=0
     
     if 'poc' in SYSTEMTYPE.lower():
-        IDAP_INSTALLED_FLAG_POC = int(config.get('GLOBAL','IDAP_INSTALLED_FLAG_POC'))
-        IDAP_INSTALL_LIGHT_POC = int(config.get('GLOBAL','IDAP_INSTALL_LIGHT_POC'))
+        IDAP_INSTALLED_FLAG_POC = int(FreshLaunchInvVars['GLOBAL']['IDAP_INSTALLED_FLAG_POC'])
+        IDAP_INSTALL_LIGHT_POC = int(FreshLaunchInvVars['GLOBAL']['IDAP_INSTALL_LIGHT_POC'])
 
     if 'nnigw' in SYSTEMTYPE.lower():
-        IDAP_INSTALLED_FLAG_NNIGW = int(config.get('GLOBAL','IDAP_INSTALLED_FLAG_NNIGW'))
+        IDAP_INSTALLED_FLAG_NNIGW = int(FreshLaunchInvVars['GLOBAL']['IDAP_INSTALLED_FLAG_NNIGW'])
         IDAP_INSTALL_LIGHT_NNIGW = 1 # for NNIGW, IDAP_INSTALL_LIGHT flag is always 1
 
     logger.info(f"Configuration - Deployment Type: {DEPLOYMENTTYPE}, Platform Type: {DEPLOYMENT_PLATFORM_TYPE}, Setup Type: {SETUPTYPE}, System Type: {SYSTEMTYPE}")
@@ -1900,7 +1904,7 @@ if __name__ == "__main__":
     POCVMEMSLIST,NNIVMEMSLIST,ALLPOCVM,ALLNNIVM,ALLPOCBM,ALLNNIBM = [],[],[],[],[],[]
     POCPRIEMSVM,GWPRIEMSVM,SIGVMIP,XDMVMIP=[],[],[],[]
     prirhelidmlist,secrhelidmlist,georhelidmlist,rhelidmjson1 = [],[],[],{}
-    mylistmap = {'PRIMARY' :{}, 'GEO':{}, 'SECONDARY':{}}
+    mylistmap = {Constants.SITE1 :{}, Constants.SITE2:{}}
     VM_CHASSIS={}
     NNIGW_VM_CHASSIS={}
     VM_HOSTIPS={}
@@ -1908,85 +1912,87 @@ if __name__ == "__main__":
     
     check_required_files(SYSTEMTYPE, logger)
     
-    VerifyMasterInputFile()
+    # VerifyMasterInputFile()
     
-    if 'poc' in SYSTEMTYPE.lower():
-        Imagelist = ReadImageDatfile(Constants.pocdatfile)
+    # if 'poc' in SYSTEMTYPE.lower():
+    #     Imagelist = ReadImageDatfile(Constants.pocdatfile)
         
-    if 'nnigw' in SYSTEMTYPE.lower():
-        NNIImagelist = ReadImageDatfile(Constants.nnidatfile)
+    # if 'nnigw' in SYSTEMTYPE.lower():
+    #     NNIImagelist = ReadImageDatfile(Constants.nnidatfile)
 
-    ip_map_hash = CreateContainerHash()
+    ip_map_hash = CreateEMSIPHash()
 
-    validate_oam_configuration(ip_map_hash, config, logger)
+    #TODO: validate OAM configuration can be handled from Radha script
+    # validate_oam_configuration(ip_map_hash, config, logger)
 
     logger.info("Dictionary Formed for the Selected Deployment:: {} and Setup Type:: {} and Systemtype:: {} is ::{}".format(DEPLOYMENTTYPE,SETUPTYPE,SYSTEMTYPE,ip_map_hash))
 
 
     CreateInventoryGroups(inventory, SYSTEMTYPE, logger)
 
-
+    #deprecate below check
     # Replace the selected code with this function call:
     POCCardCount, GWCardCount = populate_chassis_data(
-        ip_map_hash, config, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS,
+        ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS,
         ALLPOCVM, ALLPOCBM, ALLNNIVM, ALLNNIBM, XDMVMIP, SIGVMIP,
         Constants.exclude_cards
     )
     
 
     # Call the function
-    populate_vm_hostips(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS)
+    # populate_emsvm_chassid(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS)
     
 
     # Call the function
-    assign_vm_hostip_counts(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS)
+    # assign_othervm_chassid(ip_map_hash, SYSTEMTYPE, VM_CHASSIS, NNIGW_VM_CHASSIS, VM_HOSTIPS, NNIGW_VM_HOSTIPS)
     
     
-    ipmapjson = AssignIp(ip_map_hash)
+    ipmapjson = AssignOAMPlaneIP(ip_map_hash)
+    
     logger.info("Signalling IP map of the cards are ::{} ".format(ipmapjson))
     if 'poc' in SYSTEMTYPE.lower():
-        POCPriems=ipmapjson['PRIMARY']['EMS']
+        POCPriems=ipmapjson[Constants.SITE1]['EMSPRI']
     if 'nnigw' in SYSTEMTYPE.lower():
-        GWPriems=ipmapjson['PRIMARY']['EMSNNI']
-        
+        GWPriems=ipmapjson[Constants.SITE1]['EMSNNIPRI']
+
     #TODO: check if this is needed or used anywhere
     write_ip_mapping_to_file(ipmapjson, logger)
     
     serviceplane = CreatePlaneIp('SERVICEPLANE_MGMT_NW')
     remoteplane = CreatePlaneIp('REMOTELOGPLANE_MGMT_NW')
     rxplane = CreatePlaneIp('RXPLANE_MGMT_NW')
-    
-    POCrhelidminstance = Updaterhelidminstance('POC')
-    if COMMONPLATFLAG == 'no':
-        NNIrhelidminstance = Updaterhelidminstance('NNI')
+
+    # POCrhelidminstance = Updaterhelidminstance('POC')
+    # if COMMONPLATFLAG == 'no':
+    #     NNIrhelidminstance = Updaterhelidminstance('NNI')
 
 
     # Call the function
-    update_input_data(inventory, ipmapjson, Imagelist, NNIImagelist, INTERNAL_HOST_DOMAIN, config, logger)
+    update_input_data(inventory, ipmapjson, sites_to_launch, logger)
 
     #TODO: check if this is needed or used anywhere
     write_allemsvm_file(POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, logger)
 
     # Replace the selected code with this function call:
-    create_rhelidm_yaml_files(SYSTEMTYPE, rhelidmjson1, IPASERVERCHASSIS, NNIIPASERVERCHASSIS,
-                             VM_HOSTIPS, NNIGW_VM_HOSTIPS, config, COMMONPLATFLAG,
-                             DEPLOYMENT_PLATFORM_TYPE)
+    # create_rhelidm_yaml_files(SYSTEMTYPE, rhelidmjson1, IPASERVERCHASSIS, NNIIPASERVERCHASSIS,
+    #                          VM_HOSTIPS, NNIGW_VM_HOSTIPS, config, COMMONPLATFLAG,
+    #                          DEPLOYMENT_PLATFORM_TYPE)
     
 
     # Call the function
     write_ip_configuration_files(mylistmap, logger)
     
-    if "poc" in SYSTEMTYPE.lower():
-        update_rhelidm_instance_info(Constants.POC_RHELIDM_FILE, POCrhelidminstance)
+    # if "poc" in SYSTEMTYPE.lower():
+    #     update_rhelidm_instance_info(Constants.POC_RHELIDM_FILE, POCrhelidminstance)
 
-    if "nnigw" in SYSTEMTYPE.lower():
-        update_rhelidm_instance_info(Constants.NNIGW_RHELIDM_FILE, NNIrhelidminstance)
+    # if "nnigw" in SYSTEMTYPE.lower():
+    #     update_rhelidm_instance_info(Constants.NNIGW_RHELIDM_FILE, NNIrhelidminstance)
         
 
     # Replace the original code with a function call:
     createFreshLaunchInv(inventory, POCVMEMSLIST, ALLPOCVM, NNIVMEMSLIST, ALLNNIVM, ALLPOCBM, ALLNNIBM,
                              Emsiplist, Nniiplist, SYSTEMTYPE, POCPriems, GWPriems, POCPRIEMSVM,
-                             GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount, config,
+                             GWPRIEMSVM, XDMVMIP, SIGVMIP, POCCardCount, GWCardCount,
                              DEPLOYMENTTYPE, F5_CORES, SETUPTYPE, AUTOMATE_DOCKER_PULL, logger)
  
  
