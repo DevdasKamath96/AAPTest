@@ -13,8 +13,7 @@ ipaddr={{ item }}
 route={{ item }}
 {% endfor %}
 {%- elif key == 'RHELIDM_INSTANCE_INFO' %}
-RHELIDM_INSTANCE_INFO={{ value | to_json }}
-
+RHELIDM_INSTANCE_INFO={{ value | to_json }}{{ "\n" }}
 {%- else %}
 {{ key }}={{ value }}
 {% endif %}
