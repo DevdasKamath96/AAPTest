@@ -1856,11 +1856,11 @@ if __name__ == "__main__":
     
     CreateEMSInventory(inventory, logger)
     # Check if the master configuration file exists before reading it
-    if not os.path.exists(Constants.MasterConfFile):
-        logger.error(f"Master configuration file {Constants.MasterConfFile} does not exist. Please check the file path and retry.")
-        sys.exit(1)
+    # if not os.path.exists(Constants.MasterConfFile):
+    #     logger.error(f"Master configuration file {Constants.MasterConfFile} does not exist. Please check the file path and retry.")
+    #     sys.exit(1)
     
-    logger.info(f"Reading master configuration file: {Constants.MasterConfFile}")
+    # logger.info(f"Reading master configuration file: {Constants.MasterConfFile}")
     
     
     FreshLaunchInvVars = get_fresh_launch_inventory_vars(inventory, logger)
