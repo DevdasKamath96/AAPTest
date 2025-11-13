@@ -27,7 +27,7 @@
         {
             "Node": "EMSContainerConfiguration",
             "Parent": ["EMSContainerLaunch"],
-            "NodeType": "failure"
+            "NodeType": "success"
         },
         {
             "Node": "CreateEMSPasswordless",
@@ -36,5 +36,3 @@
         }
     ]
 }
-
-
